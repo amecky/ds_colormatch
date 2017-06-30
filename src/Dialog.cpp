@@ -103,7 +103,9 @@ namespace dialog {
 		for (int i = 0; i < l; ++i) {
 			int idx = (int)text[i] - 32;
 			if (idx >= 0 && idx < 127) {
-				const ds::vec4& r = FONT_RECTS[idx];
+				ds::vec4 r = FONT_RECTS[idx];
+				r.r += 540.0f;
+				r.g -= 130.0f;
 				DrawCall call;
 				call.pos = p;
 				call.rect = r;

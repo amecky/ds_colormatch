@@ -12,5 +12,10 @@ struct GameSettings {
 
 	float flashTTL;
 	float droppingTTL;
+
+	float wiggleTTL;
+	float wiggleScale;
+
+	float clearTTL;
 	
 };

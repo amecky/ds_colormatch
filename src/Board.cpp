@@ -4,6 +4,7 @@
 #include "utils\utils.h"
 #include <Windows.h>
 #include "utils\colors.h"
+#include "utils\HUD.h"
 
 void log(const char* message) {
 	OutputDebugString(message);
@@ -173,13 +174,18 @@ void Board::update(float elapsed) {
 	}
 
 	else if (m_Mode == BM_CLEARING) {
-		if (m_Timer < 1.0f) {
+		if (m_Timer < _settings->clearTTL) {
 			m_Timer += elapsed;
+			float norm = m_Timer / _settings->clearTTL;
 			for (int x = 0; x < MAX_X; ++x) {
 				for (int y = 0; y < MAX_Y; ++y) {
 					if (!m_Grid.isFree(x, y)) {
 						MyEntry& e = m_Grid.get(x, y);
-						e.scale = 1.0f - m_Timer / 1.0f;
+						e.timer += elapsed;
+						if (e.timer > 1.0f) {
+							e.timer = 1.0f;
+						}
+						e.scale = 1.0f - e.timer / _settings->clearTTL;
 					}
 				}
 			}
@@ -204,14 +210,13 @@ void Board::update(float elapsed) {
 				}
 				else if (e.state == TS_WIGGLE) {
 					e.timer += elapsed;
-					// FIXME: wiggleTTL
-					if (e.timer >= 0.4f) {
+					if (e.timer >= _settings->wiggleTTL) {
 						e.state = TS_NORMAL;
 						e.scale = 1.0f;
 					}
 					else {
-						float norm = e.timer / 0.4f;
-						e.scale = 1.0f + sin(norm * ds::TWO_PI * 2.0f) * 0.1f;
+						float norm = e.timer / _settings->wiggleTTL;
+						e.scale = 1.0f + sin(norm * ds::TWO_PI * 2.0f) * _settings->wiggleScale;
 					}
 				}
 			}
@@ -222,6 +227,14 @@ void Board::update(float elapsed) {
 void Board::clearBoard() {
 	m_Mode = BM_CLEARING;
 	m_Timer = 0.0f;
+	for (int x = 0; x < MAX_X; ++x) {
+		for (int y = 0; y < MAX_Y; ++y) {
+			if (!m_Grid.isFree(x, y)) {
+				MyEntry& e = m_Grid.get(x, y);
+				e.timer = ds::random(0.0f, 0.1f);
+			}
+		}
+	}
 }
 
 // -------------------------------------------------------
@@ -238,8 +251,7 @@ void Board::move(const ds::vec2& mousePos) {
 // -------------------------------------------------------
 // Select
 // -------------------------------------------------------
-int Board::select() {
-	int ret = -1;
+bool Board::select(Score* score) {
 	if ( m_Mode == BM_READY ) {
 		int cx = -1;
 		int cy = -1;
@@ -250,7 +262,11 @@ int Board::select() {
 			if ( m_Points.size() > 1 ) {
 				m_Timer = 0.0f;
 				m_Mode = BM_FLASHING;
-				ret = m_Points.size();				
+				score->points += m_Points.size() * 10;				
+				if (m_Points.size() > score->highestCombo) {
+					score->highestCombo = m_Points.size();
+				}
+				score->itemsCleared += m_Points.size();
 				for ( size_t i = 0; i < m_Points.size(); ++i ) {
 					ds::vec2* gp = &m_Points[i];
 					MyEntry& c = m_Grid.get(gp->x, gp->y);
@@ -258,36 +274,9 @@ int Board::select() {
 					c.timer = 0.0f;
 					++_flashCount;
 				}
-				//LOG << "flash count: " << _flashCount;
+				return true;
 			}
 		}
 	}
-	//else {
-		//LOG << "Board is not ready";
-	//}
-	return ret;
-}
-
-void Board::debugContainer() {
-}
-// -------------------------------------------------------
-// debug
-// -------------------------------------------------------
-void Board::debug() {
-	char buffer[32];
-	//LOG << "---------------------- GRID ------------------------";
-	for (int y = MAX_Y - 1; y >= 0; --y) {
-		std::string line;
-		for (int x = 0; x < MAX_X; ++x) {
-			if (m_Grid.isFree(x, y)) {
-				line += " -- ";
-			}
-			else {
-				MyEntry& c = m_Grid.get(x, y);
-				sprintf(buffer, " %2d ", c.color);
-				line += buffer;
-			}
-		}
-		//LOG << line;
-	}
+	return false;
 }

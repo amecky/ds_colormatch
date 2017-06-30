@@ -15,12 +15,18 @@
 #include "utils\colors.h"
 #include "utils\tweening.h"
 
+// ---------------------------------------------------------------
+// Game modes
+// ---------------------------------------------------------------
 enum GameMode {
 	GM_MENU,
 	GM_RUNNING,
 	GM_GAMEOVER
 };
 
+// ---------------------------------------------------------------
+// Background settings
+// ---------------------------------------------------------------
 struct BackgroundSettings {
 	ds::Color colors[8];
 	float timer;
@@ -32,6 +38,19 @@ struct BackgroundSettings {
 	float maxAlpha;
 };
 
+// ---------------------------------------------------------------
+// DebugPanel
+// ---------------------------------------------------------------
+struct DebugPanel {
+	char key;
+	bool pressed;
+	bool active;
+	int state;
+};
+
+// ---------------------------------------------------------------
+// load image from the resources
+// ---------------------------------------------------------------
 RID loadImage(const char* name) {
 	int x, y, n;
 	HRSRC resourceHandle = ::FindResource(NULL, MAKEINTRESOURCE(IDB_PNG2), "PNG");
@@ -73,15 +92,16 @@ int showGameOverMenu(const Score& score) {
 	int ret = 0;
 	char buffer[256];
 	dialog::begin();
-	dialog::Image(ds::vec2(512, 620), ds::vec4(0, 880, 640, 56));
+	dialog::Image(ds::vec2(512, 620), ds::vec4(0, 870, 530, 45));
 	ds::vec2 mp = ds::getMousePosition();
 	sprintf_s(buffer, 256, "Pieces cleared: %d", score.itemsCleared);
-	dialog::Text(ds::vec2(400, 500), buffer);
+	dialog::Text(ds::vec2(400, 550), buffer);
 	sprintf_s(buffer, 256, "Time: %02d:%02d", score.minutes, score.seconds);
-	dialog::Text(ds::vec2(400, 450), buffer);
+	dialog::Text(ds::vec2(400, 500), buffer);
 	sprintf_s(buffer, 256, "Score: %d", score.points);
+	dialog::Text(ds::vec2(400, 450), buffer);
+	sprintf_s(buffer, 256, "Highest combo: %d", score.highestCombo);
 	dialog::Text(ds::vec2(400, 400), buffer);
-	//gui::Text(ds::vec2(400, 350), "Total score: 10456");
 	if (dialog::Button(ds::vec2(512, 320), ds::vec4(0, 70, 260, 60))) {
 		ret = 1;
 	}
@@ -107,6 +127,19 @@ int showMainMenu() {
 	dialog::end();
 	return ret;
 }
+
+// ---------------------------------------------------------------
+// handle input for debug panel
+// ---------------------------------------------------------------
+void handleDebugInput(DebugPanel* panel) {
+	if (ds::isKeyPressed(panel->key)) {
+		panel->pressed = true;
+	}
+	else if (panel->pressed) {
+		panel->pressed = false;
+		panel->active = !panel->active;
+	}
+}
 // ---------------------------------------------------------------
 // main method
 // ---------------------------------------------------------------
@@ -127,9 +160,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	GameSettings settings;
 	settings.moveInTTL = 0.7f;
 	settings.moveInYAdd = 600;
-	settings.moveInYOffset = 60;
+	settings.moveInYOffset = 200;
 	settings.flashTTL = 0.3f;
 	settings.droppingTTL = 0.2f;
+	settings.wiggleTTL = 0.4f;
+	settings.wiggleScale = 0.2f;
+	settings.clearTTL = 0.5f;
 
 	BackgroundSettings bgSettings;
 	color::pick_colors(bgSettings.colors,8);
@@ -157,15 +193,15 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	bool running = true;
 
-	bool showDebug = true;
+	DebugPanel backDbgPanel  = { 'D', false, false, 1 };
+	DebugPanel infoDbgPanel  = { 'I', false, false, 1 };
+	DebugPanel settingsPanel = { 'S', false, false, 1 };
 
 	while (ds::isRunning() && running) {
 
-
-
-		if (ds::isKeyPressed('D')) {
-			showDebug != showDebug;
-		}
+		handleDebugInput(&backDbgPanel);
+		handleDebugInput(&infoDbgPanel);
+		handleDebugInput(&settingsPanel);
 
 		if (ds::isKeyPressed('C')) {
 			board->clearBoard();
@@ -216,6 +252,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 			}
 		}
 		else if (mode == GM_GAMEOVER) {
+			board->render();
 			int ret = showGameOverMenu(score);
 			if (ret == 1) {
 				board->fill(4);
@@ -227,10 +264,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		}
 		else if (mode == GM_RUNNING) {
 			if (ds::isMouseButtonPressed(0) && !pressed) {
-				int points = board->select();
-				if (points > 0) {
-					score.points += points * 10;
-					score.itemsCleared += points;
+				if ( board->select(&score)) {
 					hud.rebuildScore();
 				}
 				pressed = true;
@@ -255,15 +289,48 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		}
 		
 		spriteBuffer.flush();
-		if (showDebug) {
-			int state = 1;
+
+		if (infoDbgPanel.active || backDbgPanel.active || settingsPanel.active) {
 			gui::start(ds::vec2(0, 755));
-			gui::begin("Debug", &state);
-			gui::Value("FPS", ds::getFramesPerSecond());
-			int cx = -1;
-			int cy = -1;
-			input::convertMouse2Grid(&cx, &cy);
-			gui::Value("MPG", ds::vec2(cx, cy));
+			if (infoDbgPanel.active) {
+				gui::begin("Debug", &infoDbgPanel.state);
+				gui::Value("FPS", ds::getFramesPerSecond());
+				int cx = -1;
+				int cy = -1;
+				input::convertMouse2Grid(&cx, &cy);
+				gui::Value("MPG", ds::vec2(cx, cy));
+			}
+			if (backDbgPanel.active) {
+				gui::begin("Background", &backDbgPanel.state);
+				gui::Value("TTL", bgSettings.ttl);
+				gui::Value("Min A", bgSettings.minAlpha);
+				gui::Value("Max A", bgSettings.maxAlpha);
+				gui::Value("Start", bgSettings.startColor);
+				gui::Value("End", bgSettings.endColor);
+				gui::Value("Current", clr);
+				gui::Value("Index", bgSettings.colorIndex);
+			}
+			if (settingsPanel.active) {
+				gui::begin("Settings", &settingsPanel.state);
+				gui::Input("Move TTL", &settings.moveInTTL);
+				gui::Input("Move Y Add", &settings.moveInYAdd);
+				gui::Input("Move Y Offset", &settings.moveInYOffset);
+				gui::Input("Flash TTL", &settings.flashTTL);
+				gui::Input("Dropping TTL", &settings.droppingTTL);
+				gui::Input("Wiggle TTL", &settings.wiggleTTL);
+				gui::Input("Wiggle Scale", &settings.wiggleScale);
+				gui::Input("Clear TTL", &settings.clearTTL);
+				if (gui::Button("Restart")) {
+					if (mode == GM_RUNNING) {
+						board->fill(4);
+					}
+				}
+				if (gui::Button("Clear")) {
+					if (mode == GM_RUNNING) {
+						board->clearBoard();
+					}
+				}
+			}
 			gui::end();
 		}
 		ds::end();

@@ -833,7 +833,7 @@ namespace gui {
 
 		ds::vec2 textPos = _guiCtx->currentPos;
 		textPos.x += (160.0f - textDim.x) * 0.5f;
-		addText(textPos, text);
+		addText(textPos, text, 0.0f);
 
 		ds::vec2 labelPos = _guiCtx->currentPos;
 		labelPos.x += 160.0f;
@@ -907,7 +907,12 @@ namespace gui {
 		int b = static_cast<int>(v.b * 255.0f);
 		int a = static_cast<int>(v.a * 255.0f);
 		sprintf_s(_guiCtx->tmpBuffer, 256, "%d %d %d %d", r, g, b, a);
+		ds::vec2 p = _guiCtx->currentPos;
+		ds::vec2 textDim = textSize(label);
+		p.x = _guiCtx->currentPos.x + textDim.x + 200.0f;
+		addBox(p, ds::vec2(20, 20), v);
 		Label(label, _guiCtx->tmpBuffer);
+
 	}
 
 	// --------------------------------------------------------
@@ -1036,19 +1041,53 @@ namespace gui {
 	}
 
 	// -------------------------------------------------------
-	// input vec3
+	// Slider
+	// -------------------------------------------------------	
+	void ColorSlider(float* v, char prefix, int index, float width) {
+		HashedId id = HashPointer(v);
+		ds::vec2 p = _guiCtx->currentPos;
+		p.x += index * (width + 10.0f);
+		addBox(p, ds::vec2(width, 20.0f), _guiCtx->settings.labelBoxColor);
+		// calculate offset
+		int val = *v * 255.0f;
+		int d = 255;
+		if (isClicked(p, ds::vec2(width, 20.0f))) {
+			ds::vec2 mp = ds::getMousePosition();
+			float dx = mp.x - p.x - _guiCtx->itemOffset;
+			val = static_cast<int>(dx * d / width);
+		}
+		if (_guiCtx->buttonPressed && isHovered(p, ds::vec2(width, 20.0f))) {
+			ds::vec2 mp = ds::getMousePosition();
+			float dx = mp.x - p.x - _guiCtx->itemOffset;
+			val = static_cast<int>(dx * d / width);
+		}
+		if (val < 0) {
+			val = 0;
+		}
+		if (val > 255) {
+			val = 255;
+		}
+		p.x += static_cast<float>(val) / static_cast<float>(d) * width;
+		p.x -= 4.0f;
+		addBox(p, ds::vec2(8.0f, 24.0f), _guiCtx->settings.sliderColor);
+		p = _guiCtx->currentPos;
+		p.x += index * (width + 10.0f);
+		sprintf_s(_guiCtx->tmpBuffer, 256, "%c: %d", prefix, val);
+		ds::vec2 textDim = textSize(_guiCtx->tmpBuffer);
+		p.x += (width - textDim.x) * 0.5f;
+		addText(p, _guiCtx->tmpBuffer,0.0f);
+		*v = static_cast<float>(val) / 255.0f;
+	}
+
+	// -------------------------------------------------------
+	// input color
 	// -------------------------------------------------------
 	void Input(const char* label, ds::Color* v) {
 		HashedId id = HashPointer(v);
-		float r = v->r * 255.0f;
-		float g = v->g * 255.0f;
-		float b = v->b * 255.0f;
-		float a = v->a * 255.0f;
-		InputScalar(id, 0, &r, "%.0f", 70.0f);
-		InputScalar(id, 1, &g, "%.0f", 70.0f);
-		InputScalar(id, 2, &b, "%.0f", 70.0f);
-		InputScalar(id, 3, &a, "%.0f", 70.0f);
-		*v = ds::Color(r / 255.0f, g / 255.0f, b / 255.0f, a / 255.0f);
+		ColorSlider(&v->r, 'R', 0, 70.0f);
+		ColorSlider(&v->g, 'G', 1, 70.0f);
+		ColorSlider(&v->b, 'B', 2, 70.0f);
+		ColorSlider(&v->a, 'A', 3, 70.0f);
 		ds::vec2 p = _guiCtx->currentPos;
 		p.x = _guiCtx->currentPos.x + 320.0f;
 		addBox(p, ds::vec2(20, 20), *v);

@@ -19,6 +19,10 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ext\diesel.h" />
+    <ClInclude Include="ext\ds_imgui.h" />
+    <ClInclude Include="ext\SpriteBatchBuffer.h" />
+    <ClInclude Include="ext\stb_image.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="src\Board.h" />
     <ClInclude Include="src\Constants.h" />

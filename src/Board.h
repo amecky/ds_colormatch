@@ -5,10 +5,11 @@
 #include <vector>
 #include "Constants.h"
 
+struct Score;
 struct GameSettings;
 
 // -------------------------------------------------------
-// Color grid
+// tile state
 // -------------------------------------------------------
 enum TileState {
 	TS_NORMAL,
@@ -16,8 +17,10 @@ enum TileState {
 	TS_SHRINKING
 };
 
+// -------------------------------------------------------
+// our specialized grid entry
+// -------------------------------------------------------
 struct MyEntry {
-
 	int color;
 	bool hidden;
 	float scale;
@@ -25,6 +28,9 @@ struct MyEntry {
 	TileState state;
 };
 
+// -------------------------------------------------------
+// moving cell
+// -------------------------------------------------------
 struct MovingCell {
 
 	int x;
@@ -35,6 +41,9 @@ struct MovingCell {
 	int color;
 };
 
+// -------------------------------------------------------
+// Color grid
+// -------------------------------------------------------
 class ColorGrid : public ds::Grid<MyEntry> {
 
 public:
@@ -45,7 +54,6 @@ public:
 	}
 };
 
-//class MovingCells;
 // -------------------------------------------------------
 // Board
 // -------------------------------------------------------
@@ -59,7 +67,6 @@ enum BoardMode {
 	BM_CLEARING
 };
 
-//typedef std::vector<ds::Sprite> Highlights;
 typedef std::vector<ds::vec2> Points;
 typedef std::vector<ds::DroppedCell<MyEntry>> DroppedCells;
 typedef std::vector<MovingCell> MovingCells;
@@ -68,7 +75,7 @@ public:
 	Board(SpriteBatchBuffer* buffer, RID textureID, GameSettings* settings);
 	virtual ~Board();
 	void fill(int maxColors);
-	int select();
+	bool select(Score* score);
 	void move(const ds::vec2& mousePos);
 	int getMovesLeft() {
 		return 100;
@@ -76,8 +83,6 @@ public:
 	void init();
 	void update(float elasped);
 	void render();
-	void debug();
-	void debugContainer();
 	bool isReady() const {
 		return m_Mode != BM_FILLING;
 	}

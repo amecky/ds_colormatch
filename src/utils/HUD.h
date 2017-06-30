@@ -9,6 +9,7 @@ struct Score {
 	int minutes;
 	int points;
 	int totalPoints;
+	int highestCombo;
 };
 
 class HUD {

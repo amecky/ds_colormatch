@@ -23,6 +23,7 @@ void HUD::reset() {
 	_score->minutes = 0;
 	_score->seconds = 0;
 	_score->itemsCleared = 0;
+	_score->highestCombo = 0;
 	rebuildScore();
 }
 
