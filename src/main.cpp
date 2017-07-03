@@ -158,14 +158,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	// prepare the game settings
 	GameSettings settings;
-	settings.moveInTTL = 0.7f;
-	settings.moveInYAdd = 600;
-	settings.moveInYOffset = 200;
 	settings.flashTTL = 0.3f;
 	settings.droppingTTL = 0.2f;
 	settings.wiggleTTL = 0.4f;
 	settings.wiggleScale = 0.2f;
-	settings.clearTTL = 0.5f;
+	settings.clearMinTTL = 0.2f;
+	settings.clearMaxTTL = 0.8f;
+	settings.scaleUpMinTTL = 0.2f;
+	settings.scaleUpMaxTTL = 0.8f;
 
 	BackgroundSettings bgSettings;
 	color::pick_colors(bgSettings.colors,8);
@@ -312,14 +312,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 			}
 			if (settingsPanel.active) {
 				gui::begin("Settings", &settingsPanel.state);
-				gui::Input("Move TTL", &settings.moveInTTL);
-				gui::Input("Move Y Add", &settings.moveInYAdd);
-				gui::Input("Move Y Offset", &settings.moveInYOffset);
+				gui::Input("Min SU TTL", &settings.scaleUpMinTTL);
+				gui::Input("Max SU TTL", &settings.scaleUpMaxTTL);
 				gui::Input("Flash TTL", &settings.flashTTL);
 				gui::Input("Dropping TTL", &settings.droppingTTL);
 				gui::Input("Wiggle TTL", &settings.wiggleTTL);
 				gui::Input("Wiggle Scale", &settings.wiggleScale);
-				gui::Input("Clear TTL", &settings.clearTTL);
+				gui::Input("Min Clear TTL", &settings.clearMinTTL);
+				gui::Input("Max Clear TTL", &settings.clearMaxTTL);
 				if (gui::Button("Restart")) {
 					if (mode == GM_RUNNING) {
 						board->fill(4);

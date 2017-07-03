@@ -48,6 +48,7 @@ void Board::fill(int maxColors) {
 			e.scale = 1.0f;
 			e.state = TS_NORMAL;
 			e.timer = 0.0f;
+			e.ttl = ds::random(_settings->scaleUpMinTTL, _settings->scaleUpMaxTTL);
 			m_Grid.set(x, y, e);
 			++m_CellCounter;
 		}
@@ -74,16 +75,7 @@ void Board::render() {
 		for (int y = 0; y < MAX_Y; ++y) {
 			if (!m_Grid.isFree(x, y)) {
 				MyEntry& e = m_Grid.get(x, y);
-				if (m_Mode == BM_FILLING) {
-					float norm = m_Timer / _settings->moveInTTL;
-					ds::vec2 wp = convertFromGrid(x, y);
-					ds::vec2 sp = wp;
-					sp.y += _settings->moveInYAdd + y * _settings->moveInYOffset;
-					_buffer->add(tweening::interpolate(&tweening::linear, sp, wp, m_Timer,_settings->moveInTTL), TEXTURE, ds::vec2(1,1), 0.0f, _piecesColors[e.color]);
-				}
-				else if (!e.hidden) {
-					_buffer->add(convertFromGrid(x, y), TEXTURE,ds::vec2(e.scale),0.0f,_piecesColors[e.color]);
-				}
+				_buffer->add(convertFromGrid(x, y), TEXTURE,ds::vec2(e.scale),0.0f,_piecesColors[e.color]);
 			}
 		}
 	}
@@ -94,18 +86,45 @@ void Board::render() {
 	}
 }
 
+bool Board::scalePieces(float elapsed, ScaleMode scaleMode) {
+	int cnt = 0;
+	int total = 0;
+	for (int x = 0; x < MAX_X; ++x) {
+		for (int y = 0; y < MAX_Y; ++y) {
+			if (!m_Grid.isFree(x, y)) {
+				++total;
+				MyEntry& e = m_Grid.get(x, y);
+				e.timer += elapsed;
+				float norm = e.timer / e.ttl;
+				if (norm > 1.0f) {
+					norm = 1.0f;
+					++cnt;
+				}
+				if (scaleMode == ScaleMode::SM_UP) {
+					e.scale = norm;
+				}
+				else {
+					e.scale = 1.0f - norm;
+				}
+			}
+		}
+	}
+	if (cnt == total) {
+		return true;
+	}
+	return false;
+}
 // -------------------------------------------------------
 // Update
 // -------------------------------------------------------
 void Board::update(float elapsed) {
 	
 	if (m_Mode == BM_FILLING) {
-		m_Timer += elapsed;
-		if (m_Timer > _settings->moveInTTL) {
+		if ( scalePieces(elapsed,ScaleMode::SM_UP)) {
 			m_Mode = BM_READY;
-			m_Timer = 0.0f;
 		}
 	}
+
 	else if (m_Mode == BM_FLASHING) {
 		m_Timer += elapsed;
 		if (m_Timer > _settings->flashTTL) {
@@ -174,21 +193,8 @@ void Board::update(float elapsed) {
 	}
 
 	else if (m_Mode == BM_CLEARING) {
-		if (m_Timer < _settings->clearTTL) {
-			m_Timer += elapsed;
-			float norm = m_Timer / _settings->clearTTL;
-			for (int x = 0; x < MAX_X; ++x) {
-				for (int y = 0; y < MAX_Y; ++y) {
-					if (!m_Grid.isFree(x, y)) {
-						MyEntry& e = m_Grid.get(x, y);
-						e.timer += elapsed;
-						if (e.timer > 1.0f) {
-							e.timer = 1.0f;
-						}
-						e.scale = 1.0f - e.timer / _settings->clearTTL;
-					}
-				}
-			}
+		if (scalePieces(elapsed, ScaleMode::SM_DOWN)) {
+			m_Mode = BM_IDLE;
 		}
 	}
 	
@@ -231,7 +237,8 @@ void Board::clearBoard() {
 		for (int y = 0; y < MAX_Y; ++y) {
 			if (!m_Grid.isFree(x, y)) {
 				MyEntry& e = m_Grid.get(x, y);
-				e.timer = ds::random(0.0f, 0.1f);
+				e.timer = 0.0f;
+				e.ttl = ds::random(_settings->clearMinTTL, _settings->clearMaxTTL);
 			}
 		}
 	}

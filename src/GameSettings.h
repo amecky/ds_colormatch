@@ -1,21 +1,15 @@
 #pragma once
-#include "diesel.h"
+#include <diesel.h>
 
 struct GameSettings {
 
-	// TTL for tiles to move in
-	float moveInTTL;
-	// the initial which is added to y
-	float moveInYAdd;
-	// the individual y offset based on row
-	float moveInYOffset;
-
+	float scaleUpMinTTL;
+	float scaleUpMaxTTL;
 	float flashTTL;
 	float droppingTTL;
-
 	float wiggleTTL;
 	float wiggleScale;
-
-	float clearTTL;
+	float clearMinTTL;
+	float clearMaxTTL;
 	
 };

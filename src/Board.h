@@ -25,6 +25,7 @@ struct MyEntry {
 	bool hidden;
 	float scale;
 	float timer;
+	float ttl;
 	TileState state;
 };
 
@@ -64,7 +65,13 @@ enum BoardMode {
 	BM_FLASHING,
 	BM_MOVING,
 	BM_READY,
-	BM_CLEARING
+	BM_CLEARING,
+	BM_IDLE
+};
+
+enum ScaleMode {
+	SM_UP,
+	SM_DOWN
 };
 
 typedef std::vector<ds::vec2> Points;
@@ -88,6 +95,7 @@ public:
 	}
 	void clearBoard();
 private:
+	bool scalePieces(float elapsed, ScaleMode scaleMode);
 	ColorGrid m_Grid;
 	Points m_Points;
 	DroppedCells m_DroppedCells;
