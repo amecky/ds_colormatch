@@ -60,7 +60,18 @@ public:
 // -------------------------------------------------------
 class Board {
 
+struct Message {
+	float timer;
+	float ttl;
+	float scale;
+	ds::Color color;
+	ds::vec4 texture;
+	float rotation;
+	bool active;
+};
+
 enum BoardMode {
+	BM_PREPARE,
 	BM_FILLING,
 	BM_FLASHING,
 	BM_MOVING,
@@ -95,6 +106,7 @@ public:
 	}
 	void clearBoard();
 private:
+	void activateMessage(int idx);
 	bool scalePieces(float elapsed, ScaleMode scaleMode);
 	ColorGrid m_Grid;
 	Points m_Points;
@@ -103,7 +115,7 @@ private:
 	BoardMode m_Mode;
 	float m_Timer;
 	int m_CellCounter;
-	ds::vec4 m_GridTex[4];
+	ds::vec4 _gridTex[4];
 	int m_Counter;
 	GameSettings* _settings;
 	int _flashCount;
@@ -113,6 +125,7 @@ private:
 	SpriteBatchBuffer* _buffer;
 	RID _textureID;
 	ds::Color _piecesColors[8];
+	Message _messages[2];
 	
 };
 

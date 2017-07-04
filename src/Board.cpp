@@ -18,10 +18,13 @@ ds::vec2 convertFromGrid(int gx, int gy) {
 }
 
 Board::Board(SpriteBatchBuffer* buffer, RID textureID, GameSettings* settings) : _buffer(buffer) , _textureID(textureID) , _settings(settings) {
-	m_GridTex[0] = ds::vec4(  0, 200, 270, 486);
-	m_GridTex[1] = ds::vec4( 30, 200, 240, 486);
-	m_GridTex[2] = ds::vec4( 30, 200, 240, 486);
-	m_GridTex[3] = ds::vec4(300, 200, 110, 486);
+	_gridTex[0] = ds::vec4(  0, 200, 270, 486);
+	_gridTex[1] = ds::vec4( 30, 200, 240, 486);
+	_gridTex[2] = ds::vec4( 30, 200, 240, 486);
+	_gridTex[3] = ds::vec4(300, 200, 110, 486);
+
+	_messages[0] = Message{ 0.0f, _settings->prepareTTL, 1.0f, ds::Color(255,255,255,255), ds::vec4(  0, 920, 304, 35), 0.0f, false };
+	_messages[1] = Message{ 0.0f, 0.8f, 1.0f, ds::Color(255,255,255,255), ds::vec4(345, 920,  80, 35), 0.0f, false };
 }
 
 Board::~Board(void) {}
@@ -53,39 +56,54 @@ void Board::fill(int maxColors) {
 			++m_CellCounter;
 		}
 	}
-	m_Mode = BM_FILLING;
+	m_Mode = BM_PREPARE;
 	m_Timer = 0.0f;
 	m_Counter = MAX_X * MAX_Y;
 	_selectedX = -1;
 	_selectedY = -1;
 	_flashCount = 0;
 	color::pick_colors(_piecesColors,8);
+	activateMessage(0);
 }
 
 // -------------------------------------------------------
 // Draw
 // -------------------------------------------------------
 void Board::render() {
-	_buffer->add(ds::vec2(213, 362), m_GridTex[0]);
-	_buffer->add(ds::vec2(468, 362), m_GridTex[1]);
-	_buffer->add(ds::vec2(708, 362), m_GridTex[2]);
-	_buffer->add(ds::vec2(883, 362), m_GridTex[3]);
-	// pieces
-	for (int x = 0; x < MAX_X; ++x) {
-		for (int y = 0; y < MAX_Y; ++y) {
-			if (!m_Grid.isFree(x, y)) {
-				MyEntry& e = m_Grid.get(x, y);
-				_buffer->add(convertFromGrid(x, y), TEXTURE,ds::vec2(e.scale),0.0f,_piecesColors[e.color]);
+	_buffer->add(ds::vec2(213, 362), _gridTex[0]);
+	_buffer->add(ds::vec2(468, 362), _gridTex[1]);
+	_buffer->add(ds::vec2(708, 362), _gridTex[2]);
+	_buffer->add(ds::vec2(883, 362), _gridTex[3]);
+	if (m_Mode != BM_PREPARE) {
+		// pieces
+		for (int x = 0; x < MAX_X; ++x) {
+			for (int y = 0; y < MAX_Y; ++y) {
+				if (!m_Grid.isFree(x, y)) {
+					MyEntry& e = m_Grid.get(x, y);
+					if (!e.hidden) {
+						_buffer->add(convertFromGrid(x, y), TEXTURE, ds::vec2(e.scale), 0.0f, _piecesColors[e.color]);
+					}
+				}
 			}
+		}
+
+		// moving cells
+		for (size_t i = 0; i < m_MovingCells.size(); ++i) {
+			_buffer->add(m_MovingCells[i].current, TEXTURE, ds::vec2(1, 1), 0.0f, _piecesColors[m_MovingCells[i].color]);
 		}
 	}
 
-	// moving cells
-	for (size_t i = 0; i < m_MovingCells.size(); ++i) {
-		_buffer->add(m_MovingCells[i].current, TEXTURE,ds::vec2(1,1),0.0f,_piecesColors[m_MovingCells[i].color]);
+	for (int i = 0; i < 2; ++i) {
+		const Message& msg = _messages[i];
+		if (msg.active) {
+			_buffer->add(ds::vec2(512, 384), msg.texture,ds::vec2(msg.scale),msg.rotation, msg.color);
+		}
 	}
 }
 
+// -------------------------------------------------------
+// scale pieces for fade in / out
+// -------------------------------------------------------
 bool Board::scalePieces(float elapsed, ScaleMode scaleMode) {
 	int cnt = 0;
 	int total = 0;
@@ -114,14 +132,48 @@ bool Board::scalePieces(float elapsed, ScaleMode scaleMode) {
 	}
 	return false;
 }
+
+// -------------------------------------------------------
+// activate message
+// -------------------------------------------------------
+void Board::activateMessage(int idx) {
+	Message& msg = _messages[idx];
+	msg.timer = 0.0f;
+	msg.active = true;
+	msg.scale = 1.0f;
+	msg.rotation = 0.0f;
+}
+
 // -------------------------------------------------------
 // Update
 // -------------------------------------------------------
 void Board::update(float elapsed) {
+
+	// update message
+	for (int i = 0; i < 2; ++i) {
+		Message& msg = _messages[i];
+		if (msg.active) {
+			msg.timer += elapsed;
+			if (msg.timer >= msg.ttl) {
+				msg.active = false;
+				msg.timer = 0.0f;
+			}
+			msg.scale = 1.0f + sin(msg.timer / msg.ttl * ds::PI) * _settings->messageScale;
+		}
+	}
 	
 	if (m_Mode == BM_FILLING) {
 		if ( scalePieces(elapsed,ScaleMode::SM_UP)) {
 			m_Mode = BM_READY;
+			activateMessage(1);
+		}
+	}
+
+	else if (m_Mode == BM_PREPARE) {
+		m_Timer += elapsed;
+		if (m_Timer >= _settings->prepareTTL) {
+			m_Timer = 0.0f;
+			m_Mode = BM_FILLING;
 		}
 	}
 
@@ -155,7 +207,7 @@ void Board::update(float elapsed) {
 	}
 	else if (m_Mode == BM_MOVING) {
 		m_Timer += elapsed;
-		if (m_Timer > _settings->droppingTTL) {
+		if (m_Timer >= _settings->droppingTTL) {
 			m_Mode = BM_READY;
 			m_Timer = 0.0f;
 			for (size_t i = 0; i < m_MovingCells.size(); ++i) {
@@ -166,7 +218,7 @@ void Board::update(float elapsed) {
 			m_MovingCells.clear();
 		}
 		else {
-			if (m_Timer <= _settings->droppingTTL) {
+			if (m_Timer < _settings->droppingTTL) {
 				float norm = m_Timer / _settings->droppingTTL;
 				for (size_t i = 0; i < m_MovingCells.size(); ++i) {
 					MovingCell& m = m_MovingCells[i];

@@ -94,12 +94,16 @@ int showGameOverMenu(const Score& score) {
 	dialog::begin();
 	dialog::Image(ds::vec2(512, 620), ds::vec4(0, 870, 530, 45));
 	ds::vec2 mp = ds::getMousePosition();
+	dialog::Image(ds::vec2(512, 550), ds::vec4(420, 570, 500, 42));
 	sprintf_s(buffer, 256, "Pieces cleared: %d", score.itemsCleared);
 	dialog::Text(ds::vec2(400, 550), buffer);
+	dialog::Image(ds::vec2(512, 500), ds::vec4(420, 570, 500, 42));
 	sprintf_s(buffer, 256, "Time: %02d:%02d", score.minutes, score.seconds);
 	dialog::Text(ds::vec2(400, 500), buffer);
+	dialog::Image(ds::vec2(512, 450), ds::vec4(420, 570, 500, 42));
 	sprintf_s(buffer, 256, "Score: %d", score.points);
 	dialog::Text(ds::vec2(400, 450), buffer);
+	dialog::Image(ds::vec2(512, 400), ds::vec4(420, 570, 500, 42));
 	sprintf_s(buffer, 256, "Highest combo: %d", score.highestCombo);
 	dialog::Text(ds::vec2(400, 400), buffer);
 	if (dialog::Button(ds::vec2(512, 320), ds::vec4(0, 70, 260, 60))) {
@@ -166,6 +170,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	settings.clearMaxTTL = 0.8f;
 	settings.scaleUpMinTTL = 0.2f;
 	settings.scaleUpMaxTTL = 0.8f;
+	settings.prepareTTL = 1.0f;
+	settings.messageScale = 0.8f;
 
 	BackgroundSettings bgSettings;
 	color::pick_colors(bgSettings.colors,8);
@@ -273,7 +279,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 				pressed = false;
 			}
 
-			
+			// FIXME: check board if game is over
+			// FIXME: only do this when game is over
+			score.minutes = hud.getMinutes();
+			score.seconds = hud.getSeconds();
 
 			if (board->isReady()) {
 				hud.tick(static_cast<float>(ds::getElapsedSeconds()));
@@ -312,6 +321,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 			}
 			if (settingsPanel.active) {
 				gui::begin("Settings", &settingsPanel.state);
+				gui::Input("Prepare TTL", &settings.prepareTTL);
+				gui::Input("Message scale", &settings.messageScale);
 				gui::Input("Min SU TTL", &settings.scaleUpMinTTL);
 				gui::Input("Max SU TTL", &settings.scaleUpMaxTTL);
 				gui::Input("Flash TTL", &settings.flashTTL);

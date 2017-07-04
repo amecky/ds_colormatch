@@ -21,6 +21,12 @@ public:
 	void tick(float dt);
 	void reset();
 	void rebuildScore();
+	int getMinutes() const {
+		return _minutes[0] * 10 + _minutes[1];
+	}
+	int getSeconds() const {
+		return _seconds[0] * 10 + _seconds[1];
+	}
 private:
 	float _timer;
 	int _numbers[6];
