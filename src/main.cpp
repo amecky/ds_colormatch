@@ -122,6 +122,7 @@ int showGameOverMenu(const Score& score) {
 int showMainMenu() {
 	int ret = 0;
 	dialog::begin();
+	dialog::Image(ds::vec2(512, 35), ds::vec4(0, 955, 530, 12));
 	if (dialog::Button(ds::vec2(512, 438), ds::vec4(0, 70, 260, 60))) {
 		ret = 1;
 	}
@@ -197,6 +198,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	dialog::init(&spriteBuffer, textureID);
 
+	int moves = 0;
+
 	bool running = true;
 
 	DebugPanel backDbgPanel  = { 'D', false, false, 1 };
@@ -208,6 +211,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		handleDebugInput(&backDbgPanel);
 		handleDebugInput(&infoDbgPanel);
 		handleDebugInput(&settingsPanel);
+
+		if (ds::isKeyPressed('F')) {
+			moves = board->getNumberOfMoves();
+		}
 
 		if (ds::isKeyPressed('C')) {
 			board->clearBoard();
@@ -268,17 +275,18 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 				mode = GM_MENU;
 			}
 		}
-		else if (mode == GM_RUNNING) {
+		else if (mode == GM_RUNNING) {			
 			if (ds::isMouseButtonPressed(0) && !pressed) {
 				if ( board->select(&score)) {
 					hud.rebuildScore();
+					
 				}
 				pressed = true;
 			}
 			if (!ds::isMouseButtonPressed(0) && pressed) {
 				pressed = false;
 			}
-
+			moves = board->getNumberOfMoves();
 			// FIXME: check board if game is over
 			// FIXME: only do this when game is over
 			score.minutes = hud.getMinutes();
@@ -308,6 +316,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 				int cy = -1;
 				input::convertMouse2Grid(&cx, &cy);
 				gui::Value("MPG", ds::vec2(cx, cy));
+				gui::Value("Moves", moves);
 			}
 			if (backDbgPanel.active) {
 				gui::begin("Background", &backDbgPanel.state);

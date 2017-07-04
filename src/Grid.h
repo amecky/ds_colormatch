@@ -1,8 +1,40 @@
 #pragma once
-#include "diesel.h"
+#include <diesel.h>
 #include <vector>
+#include <Windows.h>
+
+inline void log(char* format, ...) {
+	va_list args;
+	va_start(args, format);
+	char buffer[1024];
+	memset(buffer, 0, sizeof(buffer));
+	int written = vsnprintf_s(buffer, sizeof(buffer), _TRUNCATE, format, args);
+	OutputDebugString(buffer);
+	OutputDebugString("\n");
+	va_end(args);
+
+}
 
 namespace ds {
+
+	struct p2i {
+
+		int x;
+		int y;
+
+		p2i() : x(0), y(0) {}
+		explicit p2i(int v) : x(v), y(v) {}
+		p2i(int _x, int _y) : x(_x), y(_y) {}
+		p2i(const p2i& other) : x(other.x), y(other.y) {}
+
+		void operator=(const p2i& other) {
+			x = other.x;
+			y = other.y;
+		}
+		bool operator==(const p2i& other) {
+			return x == other.x && y == other.y;
+		}
+};
 
 // -------------------------------------------------------
 // Dropped Cell
@@ -35,6 +67,7 @@ public:
     Grid(int width,int height);
     virtual ~Grid() {
         delete[] m_Data;
+		delete[] _used;
     }
 	void clear();
     void clear(const T& t);
@@ -75,6 +108,7 @@ public:
 		return getIndex(p) != -1;
 	}
 	int getMaxColumn() const;
+	int getNumberOfMoves();
 protected:
     virtual bool isMatch(const T& first,const T& right) = 0;
 private:
@@ -86,6 +120,8 @@ private:
     int m_Height;
     int m_Size;
     GridNode* m_Data;
+	p2i* _used;
+	int _numUsed;
 };
 
 // ------------------------------------------------
@@ -103,6 +139,7 @@ Grid<T>::Grid(int width,int height) : m_Width(width) , m_Height(height) {
             node->used = false;
         }
     }
+	_used = new p2i[m_Size];
 }
 
 // ------------------------------------------------
@@ -549,6 +586,43 @@ inline int Grid<T>::getMaxColumn() const {
 		}
 	}
 	return 0;
+}
+
+static bool isUsed(const p2i& p, p2i* array, int num) {
+	for (int i = 0; i < num; ++i) {
+		if (array[i] == p) {
+			return true;
+		}
+	}
+	return false;
+}
+
+template<class T>
+int Grid<T>::getNumberOfMoves() {
+	_numUsed = 0;
+	int moves = 0;
+	std::vector<ds::vec2> matches;
+	for (int x = 0; x < m_Width; ++x) {
+		for (int y = 0; y < m_Height; ++y) {
+			if (!isUsed(p2i(x, y),_used,_numUsed)) {
+				if (!isFree(x, y)) {
+					findMatchingNeighbours(x, y, matches);
+					if (matches.size() > 1) {
+						++moves;
+						for (int i = 0; i < matches.size(); ++i) {
+							const ds::vec2& cp = matches[i];
+							p2i c = p2i(cp.x, cp.y);
+							if (!isUsed(c,_used,_numUsed)) {
+								_used[_numUsed++] = c;
+							}
+						}
+					}
+					matches.clear();
+				}
+			}
+		}		
+	}
+	return moves;
 }
 
 }

@@ -105,6 +105,9 @@ public:
 		return m_Mode != BM_FILLING;
 	}
 	void clearBoard();
+	int getNumberOfMoves() {
+		return _numMovesLeft;
+	}
 private:
 	void activateMessage(int idx);
 	bool scalePieces(float elapsed, ScaleMode scaleMode);
@@ -126,6 +129,7 @@ private:
 	RID _textureID;
 	ds::Color _piecesColors[8];
 	Message _messages[2];
+	int _numMovesLeft;
 	
 };
 

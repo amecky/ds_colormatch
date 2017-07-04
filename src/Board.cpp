@@ -2,14 +2,8 @@
 #include "GameSettings.h"
 #include "utils\tweening.h"
 #include "utils\utils.h"
-#include <Windows.h>
 #include "utils\colors.h"
 #include "utils\HUD.h"
-
-void log(const char* message) {
-	OutputDebugString(message);
-	OutputDebugString("\n");
-}
 
 const static ds::vec4 TEXTURE = ds::vec4(0, 0, CELL_SIZE, CELL_SIZE);
 
@@ -216,6 +210,7 @@ void Board::update(float elapsed) {
 				e.hidden = false;
 			}
 			m_MovingCells.clear();
+			_numMovesLeft = m_Grid.getNumberOfMoves();
 		}
 		else {
 			if (m_Timer < _settings->droppingTTL) {
@@ -282,6 +277,9 @@ void Board::update(float elapsed) {
 	}
 }
 
+// -------------------------------------------------------
+// start clearing board
+// -------------------------------------------------------
 void Board::clearBoard() {
 	m_Mode = BM_CLEARING;
 	m_Timer = 0.0f;
@@ -318,7 +316,7 @@ bool Board::select(Score* score) {
 			MyEntry& me = m_Grid(cx, cy);
 			m_Points.clear();		
 			m_Grid.findMatchingNeighbours(cx,cy,m_Points);
-			if ( m_Points.size() > 1 ) {
+			if ( m_Points.size() > 1 ) {				
 				m_Timer = 0.0f;
 				m_Mode = BM_FLASHING;
 				score->points += m_Points.size() * 10;				
