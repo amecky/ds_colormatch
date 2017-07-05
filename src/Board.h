@@ -89,7 +89,7 @@ public:
 	virtual ~Board();
 	void fill(int maxColors);
 	bool select(Score* score);
-	void move(const ds::vec2& mousePos);
+	void move();
 	int getMovesLeft() {
 		return 100;
 	}

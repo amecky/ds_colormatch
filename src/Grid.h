@@ -165,6 +165,22 @@ public:
 		return false;
 	}
 
+	void fillGaps() {
+		int moved = 0;
+		//int max = getMaxColumn();
+		// FIXME: only up to max columns
+		for (int i = 0; i < m_Width - 1; ++i) {
+			if (isColumnEmpty(i)) {
+				int end = i + 1;
+				while (isColumnEmpty(end)) {
+					++end;
+				}
+				// FIXME: there might be more than one
+				// find next to 
+				shiftColumns(i,end);
+			}
+		}
+	}
 	// ------------------------------------------------
 	// Remove grid points
 	// ------------------------------------------------
@@ -175,8 +191,9 @@ public:
 		}
 		if (shift) {
 			int moved = 0;
+			int max = getMaxColumn();
 			// FIXME: only up to max columns
-			for (int i = 0; i < m_Width; ++i) {
+			for (int i = 0; i < max; ++i) {
 				if (isColumnEmpty(i)) {
 					// FIXME: there might be more than one
 					// find next to 
@@ -275,6 +292,18 @@ public:
 				copyColumn(x + 1, x);
 			}
 			clearColumn(m_Width - 1);
+		}
+	}
+
+	// ------------------------------------------------
+	// shift columns
+	// ------------------------------------------------
+	void shiftColumns(int target, int source) {
+		if (target >= 0 && target < m_Width) {
+			//for (int y = 0; y < m_Height; ++y) {
+			copyColumn(source, target);
+			//}
+			clearColumn(source);
 		}
 	}
 	// ------------------------------------------------
@@ -432,9 +461,9 @@ public:
 	}
 
 	// ------------------------------------------------
-	// get max column
+	// get max row
 	// ------------------------------------------------
-	int getMaxColumn() const {
+	int getMaxRow() const {
 		for (int y = m_Height - 1; y >= 0; --y) {
 			if (!isRowEmpty(y)) {
 				return y;
@@ -444,12 +473,27 @@ public:
 	}
 
 	// ------------------------------------------------
+	// get max column
+	// ------------------------------------------------
+	int getMaxColumn() const {
+		for (int x = 0; x < m_Width; ++x) {
+			if (isColumnEmpty(x)) {
+				return x;
+			}
+		}
+		return m_Width;
+	}
+
+	// ------------------------------------------------
 	// get number of valid moves
 	// ------------------------------------------------
 	int getNumberOfMoves() const {
 		return _validMoves;
 	}
 
+	// ------------------------------------------------
+	// pick a random matching block 
+	// ------------------------------------------------
 	int getMatchingBlock(p2i* ret, int max) {
 		int idx = ds::random(0, _numUsed);
 		p2i p = _used[idx];

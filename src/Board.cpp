@@ -324,14 +324,10 @@ void Board::clearBoard() {
 }
 
 // -------------------------------------------------------
-// move
+// move all columns to fill the empty gaps
 // -------------------------------------------------------
-void Board::move(const ds::vec2& mousePos) {
-	int mx = -1;
-	int my = -1;
-	if(input::convertMouse2Grid(&mx,&my)) {
-		m_Grid.shiftColumns(mx);
-	}
+void Board::move() {
+	m_Grid.fillGaps();
 }
 
 // -------------------------------------------------------
@@ -344,7 +340,6 @@ bool Board::select(Score* score) {
 		int cy = -1;
 		if (input::convertMouse2Grid(&cx,&cy)) {
 			MyEntry& me = m_Grid(cx, cy);
-			//m_Points.clear();		
 			_numMatches = m_Grid.findMatchingNeighbours(cx,cy,_matches,TOTAL);
 			if (_numMatches > 1 ) {
 				m_Timer = 0.0f;

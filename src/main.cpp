@@ -213,10 +213,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		handleDebugInput(&infoDbgPanel);
 		handleDebugInput(&settingsPanel);
 
-		if (ds::isKeyPressed('F')) {
-			moves = board->getNumberOfMoves();
-		}
-
 		if (ds::isKeyPressed('C')) {
 			board->clearBoard();
 			mode = GM_GAMEOVER;
@@ -288,10 +284,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 				pressed = false;
 			}
 			moves = board->getNumberOfMoves();
-			// FIXME: check board if game is over
-			// FIXME: only do this when game is over
-			score.minutes = hud.getMinutes();
-			score.seconds = hud.getSeconds();
 
 			if (board->isReady()) {
 				hud.tick(static_cast<float>(ds::getElapsedSeconds()));
@@ -299,6 +291,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 			if (moves == 0) {
 				board->clearBoard();
+				score.minutes = hud.getMinutes();
+				score.seconds = hud.getSeconds();
 				mode = GM_GAMEOVER;
 			}
 		}
@@ -326,6 +320,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 				if (mode == GM_RUNNING) {
 					if (gui::Button("Hightlight")) {
 						board->highlightBlock();
+					}
+					if (gui::Button("Move")) {
+						board->move();
 					}
 				}
 			}
