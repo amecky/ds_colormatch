@@ -2,7 +2,6 @@
 #include "Grid.h"
 #include <diesel.h>
 #include <SpriteBatchBuffer.h>
-#include <vector>
 #include "Constants.h"
 
 struct Score;
@@ -85,10 +84,6 @@ enum ScaleMode {
 	SM_DOWN
 };
 
-typedef std::vector<ds::vec2> Points;
-typedef std::vector<ds::DroppedCell<MyEntry>> DroppedCells;
-typedef std::vector<MovingCell> MovingCells;
-
 public:
 	Board(SpriteBatchBuffer* buffer, RID textureID, GameSettings* settings);
 	virtual ~Board();
@@ -98,7 +93,6 @@ public:
 	int getMovesLeft() {
 		return 100;
 	}
-	void init();
 	void update(float elasped);
 	void render();
 	bool isReady() const {
@@ -106,15 +100,17 @@ public:
 	}
 	void clearBoard();
 	int getNumberOfMoves() {
-		return _numMovesLeft;
+		return m_Grid.getNumberOfMoves();
 	}
+	void highlightBlock();
 private:
 	void activateMessage(int idx);
 	bool scalePieces(float elapsed, ScaleMode scaleMode);
 	ColorGrid m_Grid;
-	Points m_Points;
-	DroppedCells m_DroppedCells;
-	MovingCells m_MovingCells;
+	ds::DroppedCell<MyEntry> _droppedCells[TOTAL];
+	int _numDroppedCells;
+	MovingCell _movingCells[TOTAL];
+	int _numMoving;
 	BoardMode m_Mode;
 	float m_Timer;
 	int m_CellCounter;
@@ -130,6 +126,9 @@ private:
 	ds::Color _piecesColors[8];
 	Message _messages[2];
 	int _numMovesLeft;
+	ds::p2i _matches[TOTAL];
+	int _numMatches;
+	float _highlightTimer;
 	
 };
 

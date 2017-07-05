@@ -173,6 +173,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	settings.scaleUpMaxTTL = 0.8f;
 	settings.prepareTTL = 1.0f;
 	settings.messageScale = 0.8f;
+	settings.highlightTime = 5.0f;
 
 	BackgroundSettings bgSettings;
 	color::pick_colors(bgSettings.colors,8);
@@ -295,6 +296,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 			if (board->isReady()) {
 				hud.tick(static_cast<float>(ds::getElapsedSeconds()));
 			}
+
+			if (moves == 0) {
+				board->clearBoard();
+				mode = GM_GAMEOVER;
+			}
 		}
 
 		if (mode == GM_RUNNING || mode == GM_GAMEOVER) {
@@ -317,6 +323,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 				input::convertMouse2Grid(&cx, &cy);
 				gui::Value("MPG", ds::vec2(cx, cy));
 				gui::Value("Moves", moves);
+				if (mode == GM_RUNNING) {
+					if (gui::Button("Hightlight")) {
+						board->highlightBlock();
+					}
+				}
 			}
 			if (backDbgPanel.active) {
 				gui::begin("Background", &backDbgPanel.state);
@@ -340,6 +351,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 				gui::Input("Wiggle Scale", &settings.wiggleScale);
 				gui::Input("Min Clear TTL", &settings.clearMinTTL);
 				gui::Input("Max Clear TTL", &settings.clearMaxTTL);
+				gui::Input("Highlight Time", &settings.highlightTime);
 				if (gui::Button("Restart")) {
 					if (mode == GM_RUNNING) {
 						board->fill(4);

@@ -26,6 +26,7 @@ namespace ds {
 		explicit p2i(int v) : x(v), y(v) {}
 		p2i(int _x, int _y) : x(_x), y(_y) {}
 		p2i(const p2i& other) : x(other.x), y(other.y) {}
+		//p2i(const ds::vec2& v) : x(v.x), y(v.y) {}
 
 		void operator=(const p2i& other) {
 			x = other.x;
@@ -34,7 +35,9 @@ namespace ds {
 		bool operator==(const p2i& other) {
 			return x == other.x && y == other.y;
 		}
-};
+	};
+
+	
 
 // -------------------------------------------------------
 // Dropped Cell
@@ -53,7 +56,7 @@ template<class T>
 class Grid {
 
 struct GridNode {
-	ds::vec2 v;
+	p2i v;
     T data;
     bool used;
 
@@ -64,566 +67,520 @@ struct GridNode {
 };
 
 public:
-    Grid(int width,int height);
+    Grid(int width,int height) : m_Width(width), m_Height(height) {
+		m_Size = width * height;
+		m_Data = new GridNode[m_Size];
+		for (int x = 0; x < width; ++x) {
+			for (int y = 0; y < height; ++y) {
+				int index = getIndex(x, y);
+				GridNode* node = &m_Data[index];
+				node->v = p2i(x, y);
+				node->used = false;
+			}
+		}
+		_used = new p2i[m_Size];
+		_helper = new p2i[m_Size];
+		_numUsed = 0;
+		_validMoves = 0;
+	}
+
     virtual ~Grid() {
+		delete[] _helper;
         delete[] m_Data;
 		delete[] _used;
     }
-	void clear();
-    void clear(const T& t);
-    const T& get(int x,int y) const;
-	T& get(int x,int y);
-	const T& get(const ds::vec2& p) const;
-	T& get(const ds::vec2& p);
-    void set(int x,int y,const T& t);
-    bool remove(int x,int y);    
-    void remove(const std::vector<ds::vec2>& vs,bool shift);  
+
+	// ------------------------------------------------
+	// Clears the entire grid with given object
+	// ------------------------------------------------
+	void clear() {
+		for (int i = 0; i < m_Size; ++i) {
+			m_Data[i].used = false;
+		}
+	}
+
+	// ------------------------------------------------
+	// Clears the entire grid with given object
+	// ------------------------------------------------
+	void clear(const T& t) {
+		for (int i = 0; i < m_Size; ++i) {
+			m_Data[i].data = t;
+			m_Data[i].used = true;
+		}
+	}
+
+
+	// ------------------------------------------------
+	// Gets the object at given position
+	// ------------------------------------------------
+	const T& get(int x, int y) const {
+		int idx = getIndex(x, y);
+		return m_Data[idx].data;
+	}
+
+	// ------------------------------------------------
+	// Gets the object at given position
+	// ------------------------------------------------
+	T& get(const p2i& p) {
+		int idx = getIndex(p);
+		return m_Data[idx].data;
+	}
+
+	// ------------------------------------------------
+	// Gets the object at given position
+	// ------------------------------------------------
+	const T& get(const p2i& p) const {
+		int idx = getIndex(p);
+		return m_Data[idx].data;
+	}
+
+	// ------------------------------------------------
+	// Gets the object at given position
+	// ------------------------------------------------
+	T& get(int x, int y) {
+		int idx = getIndex(x, y);
+		return m_Data[idx].data;
+	}
+	// ------------------------------------------------
+	//
+	// ------------------------------------------------
+	void set(int x, int y, const T& t) {
+		int idx = getIndex(x, y);
+		if (idx != -1) {
+			GridNode* node = &m_Data[idx];
+			node->data = t;
+			node->used = true;
+		}
+	}
+
+	// ------------------------------------------------
+	// remove
+	// ------------------------------------------------
+	bool remove(int x, int y) {
+		int idx = getIndex(x, y);
+		if (idx != -1 && m_Data[idx].used) {
+			m_Data[idx].used = false;
+			return true;
+		}
+		return false;
+	}
+
+	// ------------------------------------------------
+	// Remove grid points
+	// ------------------------------------------------
+	void remove(p2i* points, int num, bool shift) {
+		for (int i = 0; i < num; ++i) {
+			const p2i& gp = points[i];
+			remove(gp.x, gp.y);
+		}
+		if (shift) {
+			int moved = 0;
+			// FIXME: only up to max columns
+			for (int i = 0; i < m_Width; ++i) {
+				if (isColumnEmpty(i)) {
+					// FIXME: there might be more than one
+					// find next to 
+					shiftColumns(i + 1);
+				}
+			}
+		}
+	}
+
     const int width() const {
         return m_Width;
     }
+
     const int height() const {
         return m_Height;
     }
+
 	bool isValid(int x, int y) const {
 		return getIndex(x, y) != -1;
 	}
-	void findMatchingNeighbours(int x, int y, std::vector<ds::vec2>& entries);
-	void findMatchingNeighbours(int x, int y, const T& node, std::vector<ds::vec2>& entries);
-    void fillRow(int row,const T& t);
-    void fillColumn(int column,const T& t);
-    void copyRow(int oldRow,int newRow);
-    void copyColumn(int oldColumn,int newColumn);    
-    void clearColumn(int column);
-    void shiftColumns(int startColumn);
-    T& operator() (int x,int y);    
-	const T& operator() (int x, int y) const;
-    const bool isFree(int x,int y) const;
-	bool isColumnEmpty(int col) const;
-	bool isRowEmpty(int row) const;
-    void dropRow(int x);
-    void dropCell(int x,int y);
-	void dropCells(std::vector<DroppedCell<T>>& droppedCells);
-	void swap(const ds::vec2& first, const ds::vec2& second);
-	bool isValid(const ds::vec2& p) const {
+	
+	// ------------------------------------------------
+	// Checks if cell is used
+	// ------------------------------------------------
+	bool isUsed(int x, int y) const {
+		int idx = getIndex(x, y);
+		if (idx != -1) {
+			return m_Data[idx].used;
+		}
+		return false;
+	}
+
+	// ------------------------------------------------
+	// find all matching neighbours
+	// ------------------------------------------------
+	int findMatchingNeighbours(int x, int y, p2i* ret, int max) {
+		int cnt = 0;
+		if (isUsed(x, y)) {
+			cnt = simpleFindMatching(x, y, ret, max);
+		}
+		return cnt;
+	}
+	
+	// ------------------------------------------------
+	// fill row
+	// ------------------------------------------------
+	void fillRow(int row, const T& t) {
+		if (row >= 0 && row < m_Height) {
+			for (int x = 0; x < m_Width; ++x) {
+				int idx = getIndex(x, row);
+				if (idx != -1) {
+					m_Data[idx].data = t;
+					m_Data[idx].used = true;
+				}
+			}
+		}
+	}
+
+	// ------------------------------------------------
+	// copy row
+	// ------------------------------------------------
+	void copyRow(int oldRow, int newRow) {
+		for (int x = 0; x < m_Width; ++x) {
+			int oldIndex = getIndex(x, oldRow);
+			int newIndex = getIndex(x, newRow);
+			m_Data[newIndex] = m_Data[oldIndex];
+		}
+	}
+
+	// ------------------------------------------------
+	// copy column
+	// ------------------------------------------------
+	void copyColumn(int oldColumn, int newColumn) {
+		for (int y = 0; y < m_Height; ++y) {
+			int oldIndex = getIndex(oldColumn, y);
+			int newIndex = getIndex(newColumn, y);
+			if (m_Data[oldIndex].used) {
+				m_Data[newIndex].data = m_Data[oldIndex].data;
+				m_Data[newIndex].used = true;
+			}
+			else {
+				m_Data[newIndex].used = false;
+			}
+		}
+	}
+	// ------------------------------------------------
+	// shift columns
+	// ------------------------------------------------
+	void shiftColumns(int startColumn) {
+		if (startColumn >= 0 && startColumn < m_Width) {
+			int sx = startColumn - 1;
+			if (sx < 0) {
+				sx = 0;
+			}
+			for (int x = sx; x < m_Width - 1; ++x) {
+				copyColumn(x + 1, x);
+			}
+			clearColumn(m_Width - 1);
+		}
+	}
+	// ------------------------------------------------
+	// clear column
+	// ------------------------------------------------
+	void clearColumn(int column) {
+		if (column >= 0 && column < m_Width) {
+			for (int y = 0; y < m_Height; ++y) {
+				int idx = getIndex(column, y);
+				m_Data[idx].used = false;
+			}
+		}
+	}
+	// ------------------------------------------------
+	// fill column
+	// ------------------------------------------------
+	void fillColumn(int column, const T& t) {
+		for (int y = 0; y < m_Height; ++y) {
+			int idx = getIndex(column, y);
+			m_Data[idx].data = t;
+			m_Data[idx].used = true;
+		}
+	}
+
+	// ------------------------------------------------
+	//
+	// ------------------------------------------------
+	T& operator() (int x, int y) {
+		int index = getIndex(x, y);
+		return m_Data[index].data;
+	}
+
+	// ------------------------------------------------
+	//
+	// ------------------------------------------------
+	const T& operator() (int x, int y) const {
+		int index = getIndex(x, y);
+		return m_Data[index].data;
+	}
+
+	// ------------------------------------------------
+	// Checks if cell is free
+	// ------------------------------------------------
+	bool isFree(int x, int y) const {
+		int idx = getIndex(x, y);
+		if (idx != -1) {
+			return !m_Data[idx].used;
+		}
+		return false;
+	}
+
+	// -------------------------------------------------------
+	// Is column empty
+	// -------------------------------------------------------
+	bool isColumnEmpty(int col) const {
+		int count = 0;
+		for (int i = 0; i < m_Height; ++i) {
+			if (!isFree(col, i)) {
+				++count;
+			}
+		}
+		return count == 0;
+	}
+
+	// -------------------------------------------------------
+	// Is row empty
+	// -------------------------------------------------------
+	bool isRowEmpty(int row) const {
+		int count = 0;
+		for (int i = 0; i < m_Width; ++i) {
+			if (!isFree(i, row)) {
+				++count;
+			}
+		}
+		return count == 0;
+	}
+
+	// -------------------------------------------------------
+	// swap
+	// -------------------------------------------------------
+	void swap(const p2i& first, const p2i& second) {
+		int fi = getIndex(first);
+		int si = getIndex(second);
+		GridNode n = m_Data[fi];
+		m_Data[fi] = m_Data[si];
+		m_Data[si] = n;
+	}
+    
+	
+	// ------------------------------------------------
+	// Drop row
+	// ------------------------------------------------
+	void dropRow(int x) {
+		for (int y = (m_Height - 1); y >= 0; --y) {
+			dropCell(x, y);
+		}
+	}
+
+	// ------------------------------------------------
+	// Drop cell
+	// ------------------------------------------------
+	void dropCell(int x, int y) {
+		int idx = getIndex(x, y);
+		if (isUsed(x, y)) {
+			int finalY = 0;
+			for (int yp = y + 1; yp < m_Height; ++yp) {
+				if (isFree(x, yp)) {
+					++finalY;
+				}
+				else {
+					break;
+				}
+			}
+			if (finalY != 0) {
+				int nidx = getIndex(x, finalY);
+				m_Data[nidx].data = m_Data[idx].data;
+				m_Data[nidx].used = true;
+				m_Data[idx].used = false;
+			}
+		}
+	}
+
+	// -------------------------------------------------------
+	// Drop cells - remove empty cells in between
+	// -------------------------------------------------------
+	int dropCells(DroppedCell<T>* droppedCells, int num) {
+		int cnt = 0;
+		for (int x = 0; x < m_Width; ++x) {
+			for (int y = 0; y < m_Height - 1; ++y) {
+				if (isFree(x, y)) {
+					int sy = y + 1;
+					while (isFree(x, sy) && sy < m_Height - 1) {
+						++sy;
+					}
+					if (isUsed(x, sy) && cnt < num) {
+						DroppedCell<T> dc;
+						dc.data = get(x, sy);
+						dc.from = ds::vec2(x, sy);
+						dc.to = ds::vec2(x, y);
+						droppedCells[cnt++] = dc;
+						set(x, y, get(x, sy));
+						remove(x, sy);
+					}
+				}
+			}
+		}
+		return cnt;
+	}
+
+	// ------------------------------------------------
+	// is valid
+	// ------------------------------------------------
+	bool isValid(const p2i& p) const {
 		return getIndex(p) != -1;
 	}
-	int getMaxColumn() const;
-	int getNumberOfMoves();
+
+	// ------------------------------------------------
+	// get max column
+	// ------------------------------------------------
+	int getMaxColumn() const {
+		for (int y = m_Height - 1; y >= 0; --y) {
+			if (!isRowEmpty(y)) {
+				return y;
+			}
+		}
+		return 0;
+	}
+
+	// ------------------------------------------------
+	// get number of valid moves
+	// ------------------------------------------------
+	int getNumberOfMoves() const {
+		return _validMoves;
+	}
+
+	int getMatchingBlock(p2i* ret, int max) {
+		int idx = ds::random(0, _numUsed);
+		p2i p = _used[idx];
+		return findMatchingNeighbours(p.x, p.y, ret, max);
+	}
+
+	// ------------------------------------------------
+	// calculate valid moves
+	// ------------------------------------------------
+	void calculateValidMoves() {
+		_numUsed = 0;
+		_validMoves = 0;
+		for (int x = 0; x < m_Width; ++x) {
+			for (int y = 0; y < m_Height; ++y) {
+				if (!isAlreadyProcessed(p2i(x, y), _used, _numUsed)) {
+					if (isUsed(x, y)) {
+						int num = simpleFindMatching(x, y, _helper, m_Size);
+						if (num > 1) {
+							++_validMoves;
+							for (int i = 0; i < num; ++i) {
+								const p2i& c = _helper[i];
+								if (!isAlreadyProcessed(c, _used, _numUsed)) {
+									_used[_numUsed++] = c;
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
 protected:
     virtual bool isMatch(const T& first,const T& right) = 0;
+
 private:
-    const int getIndex(int x,int y) const;
-	const int getIndex(const ds::vec2& p) const;	
-	void findMatching(int x, int y, GridNode* providedNode, std::vector<GridNode*>& gridNodes);
-	void simpleFindMatching(int x, int y, GridNode* providedNode, std::vector<GridNode*>& gridNodes);
+	// ------------------------------------------------
+	// check if point is already in the used list
+	// ------------------------------------------------
+	bool isAlreadyProcessed(const p2i& p, p2i* array, int num) {
+		for (int i = 0; i < num; ++i) {
+			if (array[i] == p) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	// ------------------------------------------------
+	// internal findMatching
+	// ------------------------------------------------
+	int simpleFindMatching(int x, int y, p2i* ret, int max) {
+		_numMatches = 0;
+		int idx = getIndex(x, y);
+		if (idx != -1) {
+			const GridNode& providedNode = m_Data[idx];
+			if (isUsed(x - 1, y)) {
+				findMatching(x - 1, y, providedNode, ret, max);
+			}
+			if (isUsed(x + 1, y)) {
+				findMatching(x + 1, y, providedNode, ret, max);
+			}
+			if (isUsed(x, y - 1)) {
+				findMatching(x, y - 1, providedNode, ret, max);
+			}
+			if (isUsed(x, y + 1)) {
+				findMatching(x, y + 1, providedNode, ret, max);
+			}
+		}
+		return _numMatches;
+	}
+
+	// ------------------------------------------------
+	// internal findMatching
+	// ------------------------------------------------
+	void findMatching(int x, int y, const GridNode& providedNode, p2i* ret, int max) {
+		int idx = getIndex(x, y);
+		if (idx != -1) {
+			const GridNode& currentNode = m_Data[idx];
+			if (currentNode.used && isMatch(currentNode.data, providedNode.data)) {
+				if (!isAlreadyProcessed(p2i(currentNode.v),ret,_numMatches)) {
+					if (_numMatches < max) {
+						ret[_numMatches++] = p2i(currentNode.v);
+					}
+					if (isUsed(x - 1, y)) {
+						findMatching(x - 1, y, currentNode, ret, max);
+					}
+					if (isUsed(x + 1, y)) {
+						findMatching(x + 1, y, currentNode, ret, max);
+					}
+					if (isUsed(x, y - 1)) {
+						findMatching(x, y - 1, currentNode, ret, max);
+					}
+					if (isUsed(x, y + 1)) {
+						findMatching(x, y + 1, currentNode, ret, max);
+					}
+				}
+			}
+		}
+	}
+	
+	// ------------------------------------------------
+	// Returns the index into the array if valid or -1
+	// ------------------------------------------------
+	int getIndex(int x, int y) const {
+		if (x < 0 || x >= m_Width) {
+			return -1;
+		}
+		if (y < 0 || y >= m_Height) {
+			return -1;
+		}
+		return y * m_Width + x;
+	}
+
+	// ------------------------------------------------
+	// Returns the index into std::vector if valid or -1
+	// ------------------------------------------------
+	int getIndex(const p2i& p) const {
+		return getIndex(p.x, p.y);
+	}
+
     int m_Width;
     int m_Height;
     int m_Size;
     GridNode* m_Data;
 	p2i* _used;
+	p2i* _helper;
 	int _numUsed;
+	int _numMatches;
+	int _validMoves;
 };
-
-// ------------------------------------------------
-// Create new grid with desired dimension
-// ------------------------------------------------
-template<class T>
-Grid<T>::Grid(int width,int height) : m_Width(width) , m_Height(height) {
-    m_Size = width * height;
-    m_Data = new GridNode[m_Size];
-    for ( int x = 0; x < width; ++x ) {
-        for ( int y = 0; y < height; ++y ) {
-            int index = getIndex(x,y);
-            GridNode* node = &m_Data[index];
-			node->v = ds::vec2(x, y);
-            node->used = false;
-        }
-    }
-	_used = new p2i[m_Size];
-}
-
-// ------------------------------------------------
-//
-// ------------------------------------------------
-template<class T>
-inline T& Grid<T>::operator() (int x,int y) {
-    int index = getIndex(x,y);
-    return m_Data[index].data;
-}
-
-// ------------------------------------------------
-//
-// ------------------------------------------------
-template<class T>
-inline const T& Grid<T>::operator() (int x, int y) const {
-	int index = getIndex(x, y);
-	return m_Data[index].data;
-}
-
-
-// ------------------------------------------------
-// Clears the entire grid with given object
-// ------------------------------------------------
-template<class T>
-inline void Grid<T>::clear() {
-	for ( int i = 0; i < m_Size; ++i ) {
-		m_Data[i].used = false;
-	}
-}
-
-// ------------------------------------------------
-// Clears the entire grid with given object
-// ------------------------------------------------
-template<class T>
-inline void Grid<T>::clear(const T& t) {
-    for ( int i = 0; i < m_Size; ++i ) {
-        m_Data[i].data = t;
-        m_Data[i].used = true;
-    }
-}
-
-// ------------------------------------------------
-// Gets the object at given position
-// ------------------------------------------------
-template<class T>
-inline const T& Grid<T>::get(int x,int y) const {
-    int idx = getIndex(x,y);
-    return m_Data[idx].data;
-}
-
-// ------------------------------------------------
-// Gets the object at given position
-// ------------------------------------------------
-template<class T>
-inline T& Grid<T>::get(const ds::vec2& p) {
-	int idx = getIndex(p);
-	return m_Data[idx].data;
-}
-
-// ------------------------------------------------
-// Gets the object at given position
-// ------------------------------------------------
-template<class T>
-inline const T& Grid<T>::get(const ds::vec2& p) const {
-	int idx = getIndex(p);
-	return m_Data[idx].data;
-}
-
-// ------------------------------------------------
-// Gets the object at given position
-// ------------------------------------------------
-template<class T>
-inline T& Grid<T>::get(int x, int y) {
-	int idx = getIndex(x, y);
-	return m_Data[idx].data;
-}
-// ------------------------------------------------
-//
-// ------------------------------------------------
-template<class T>
-inline void Grid<T>::set(int x,int y,const T& t) {
-    int idx = getIndex(x,y);
-    if ( idx != -1 ) {
-        GridNode* node = &m_Data[idx];
-        node->data = t;
-        node->used = true;
-    }
-}
-
-// ------------------------------------------------
-// Checks if cell is free
-// ------------------------------------------------
-template<class T>
-inline bool Grid<T>::remove(int x,int y) {
-    int idx = getIndex(x,y);
-    if ( idx != -1 && m_Data[idx].used ) {
-        m_Data[idx].used = false;
-        return true;
-    }
-    return false;
-}
-
-// ------------------------------------------------
-// Checks if cell is free
-// ------------------------------------------------
-template<class T>
-inline const bool Grid<T>::isFree(int x,int y) const {
-    int idx = getIndex(x,y);
-    if ( idx != -1 ) {
-        return !m_Data[idx].used;
-    }
-    return false;
-}
-// ------------------------------------------------
-// Returns the index into std::vector if valid or -1
-// ------------------------------------------------
-template<class T>
-inline const int Grid<T>::getIndex(int x, int y) const {
-    if ( x < 0 || x >= m_Width ) {
-        return -1;
-    }
-    if ( y < 0 || y >= m_Height ) {
-        return -1;
-    }
-    return y * m_Width + x;
-}
-
-// ------------------------------------------------
-// Returns the index into std::vector if valid or -1
-// ------------------------------------------------
-template<class T>
-inline const int Grid<T>::getIndex(const ds::vec2& p) const {
-	return getIndex(p.x, p.y);
-}
-
-// ------------------------------------------------
-// findMatchingNeighbours
-// ------------------------------------------------
-template<class T>
-inline void Grid<T>::findMatchingNeighbours(int x, int y, std::vector<ds::vec2>& entries) {
-    int idx = getIndex(x,y);
-	std::vector<GridNode*> gridNodes;
-    if ( idx != -1 ) {    
-        GridNode* provided = &m_Data[idx];
-        if ( provided->used) {
-            findMatching(x,y,provided,gridNodes);
-        }
-    }
-    if ( !gridNodes.empty()) {
-        for ( std::size_t i = 0; i < gridNodes.size(); ++i ) {
-            GridNode* node = gridNodes[i];
-            entries.push_back(node->v);
-        }
-    }
-}
-
-template<class T>
-inline void Grid<T>::findMatchingNeighbours(int x, int y, const T& node, std::vector<ds::vec2>& entries) {
-	std::vector<GridNode*> gridNodes;
-	if ( !isFree(x,y)) {
-		GridNode tmp;
-		tmp.ds::vec2 = ds::vec2(x, y);
-		tmp.data = node;
-		tmp.used = true;
-		simpleFindMatching(x,y,&tmp,gridNodes);
-	}
-	if ( !gridNodes.empty()) {
-		for ( std::size_t i = 0; i < gridNodes.size(); ++i ) {
-			GridNode* node = gridNodes[i];
-			entries.push_back(node->v);
-		}
-	}
-}
-
-// ------------------------------------------------
-// internal findMatching
-// ------------------------------------------------
-template<class T>
-inline void Grid<T>::simpleFindMatching(int x, int y, GridNode* providedNode, std::vector<GridNode*>& gridNodes) {
-	if ( !isFree(x-1,y)) {
-		findMatching(x-1,y,providedNode,gridNodes);
-	}
-	if ( !isFree(x+1,y)) {
-		findMatching(x+1,y,providedNode,gridNodes);
-	}
-	if ( !isFree(x,y-1)) {
-		findMatching(x,y-1,providedNode,gridNodes);
-	}
-	if ( !isFree(x,y+1)) {
-		findMatching(x,y+1,providedNode,gridNodes);
-	}
-}
-
-// ------------------------------------------------
-// internal findMatching
-// ------------------------------------------------
-template<class T>
-inline void Grid<T>::findMatching(int x, int y, GridNode* providedNode, std::vector<GridNode*>& gridNodes) {
-    int idx = getIndex(x,y);
-    if ( idx != -1 ) {
-        GridNode* currentNode = &m_Data[idx];        
-        if ( currentNode->used && isMatch(currentNode->data,providedNode->data)) {
-            // check if already here
-            bool found = false;
-            for ( size_t i = 0; i < gridNodes.size(); ++i ) {
-                GridNode* savedNode = gridNodes[i];
-                if ( savedNode->v == currentNode->v ) {
-                    found = true;
-                }
-            }
-            if ( !found ) {
-                gridNodes.push_back(currentNode);
-                if ( !isFree(x-1,y)) {
-                    findMatching(x-1,y,currentNode,gridNodes);
-                }
-                if ( !isFree(x+1,y)) {
-                    findMatching(x+1,y,currentNode,gridNodes);
-                }
-                if ( !isFree(x,y-1)) {
-                    findMatching(x,y-1,currentNode,gridNodes);
-                }
-                if ( !isFree(x,y+1)) {
-                    findMatching(x,y+1,currentNode,gridNodes);
-                }
-            }
-        }
-    }
-}
-
-// ------------------------------------------------
-//
-// ------------------------------------------------
-template<class T>
-inline void Grid<T>::copyRow(int oldRow, int newRow) {
-    for ( int x = 0; x < m_Width; ++x ) {
-        int oldIndex = getIndex(x,oldRow);
-        int newIndex = getIndex(x,newRow);
-        m_Data[newIndex] = m_Data[oldIndex];
-    }
-}
-
-// ------------------------------------------------
-//
-// ------------------------------------------------
-template<class T>
-inline void Grid<T>::copyColumn(int oldColumn, int newColumn) {
-    for ( int y = 0; y < m_Height; ++y ) {
-        int oldIndex = getIndex(oldColumn,y);
-		int newIndex = getIndex(newColumn,y);
-		if ( m_Data[oldIndex].used ) {			
-			m_Data[newIndex].data = m_Data[oldIndex].data;
-			m_Data[newIndex].used = true;
-		}
-		else {
-			m_Data[newIndex].used = false;
-		}
-    }
-}
-
-// ------------------------------------------------
-//
-// ------------------------------------------------
-template<class T>
-inline void Grid<T>::fillRow(int row,const T& t) {
-    if ( row >= 0 && row < m_Height ) {
-        for ( int x = 0; x < m_Width; ++x ) {
-            int idx = getIndex(x,row);
-            if ( idx != -1 ) {
-                m_Data[idx].data = t;
-                m_Data[idx].used = true;
-            }
-        }
-    }
-}
-
-// ------------------------------------------------
-// shift columns
-// ------------------------------------------------
-template<class T>
-inline void Grid<T>::shiftColumns(int startColumn) {    
-    if ( startColumn >= 0 && startColumn < m_Width ) {
-        int sx = startColumn -1;
-        if ( sx < 0 ) {
-            sx = 0;
-        }
-        for ( int x = sx; x < m_Width -1 ; ++x ) {
-            copyColumn(x+1,x);
-        }
-        clearColumn(m_Width-1);        
-    }
-}
-// ------------------------------------------------
-// clear column
-// ------------------------------------------------
-template<class T>
-inline void Grid<T>::clearColumn(int column) {
-    if ( column >= 0 && column < m_Width ) {
-        for ( int y = 0; y < m_Height; ++y ) {
-            int idx = getIndex(column,y);
-            m_Data[idx].used = false;
-        }
-    }
-}
-// ------------------------------------------------
-//
-// ------------------------------------------------
-template<class T>
-inline void Grid<T>::fillColumn(int column, const T& t) {
-    for ( int y = 0; y < m_Height; ++y ) {
-        int idx = getIndex(column,y);
-        m_Data[idx].data = t;
-        m_Data[idx].used = true;
-    }
-}
-
-// ------------------------------------------------
-// Drop row
-// ------------------------------------------------
-template<class T>
-inline void Grid<T>::dropRow(int x) {
-    for ( int y = (m_Height-1); y >= 0; --y ) {
-        dropCell(x,y);
-    }
-}
-
-// ------------------------------------------------
-// Drop cell
-// ------------------------------------------------
-template<class T>
-inline void Grid<T>::dropCell(int x, int y) {
-    int idx = getIndex(x,y);
-    if ( !isFree(x,y)) {
-        int finalY = 0;
-        for ( int yp = y +1; yp < m_Height; ++yp ) {
-            if ( isFree(x,yp) ) {
-                //finalY = yp;
-				++finalY;
-            }
-            else {
-                break;
-            }
-        }
-        if ( finalY != 0 ) {
-            int nidx = getIndex(x,finalY);
-            m_Data[nidx].data = m_Data[idx].data;
-            m_Data[nidx].used = true;
-            m_Data[idx].used = false;
-        }
-    }
-}
-
-// -------------------------------------------------------
-// Drop cells - remove empty cells in between
-// -------------------------------------------------------
-template<class T>
-inline void Grid<T>::dropCells(std::vector<DroppedCell<T>>& droppedCells) {
-	for ( int x = 0; x < m_Width; ++x ) {
-		for ( int y = 0 ; y < m_Height - 1; ++y ) {
-			if ( isFree(x,y) ) {
-				int sy = y + 1;
-				while ( isFree(x,sy) && sy < m_Height - 1 ) {
-					++sy;
-				}			
-				if ( !isFree(x,sy)) {
-					DroppedCell<T> dc;
-					dc.data = get(x, sy);
-					dc.from = ds::vec2(x,sy);
-					dc.to = ds::vec2(x,y);
-					droppedCells.push_back(dc);
-					set(x,y,get(x,sy));
-					if (!remove(x, sy)) {
-						//LOGE << "Cannot remove at " << x << " " << sy;
-					}
-				}
-			}
-		}
-	}
-}
-
-// -------------------------------------------------------
-// Is column empty
-// -------------------------------------------------------
-template<class T>
-bool Grid<T>::isColumnEmpty(int col) const {
-	int count = 0;
-	for (int i = 0; i < m_Height; ++i ) {
-		if ( !isFree(col,i)) {
-			++count;
-		}
-	}
-	return count == 0;
-}
-
-// -------------------------------------------------------
-// Is row empty
-// -------------------------------------------------------
-template<class T>
-bool Grid<T>::isRowEmpty(int row) const {
-	int count = 0;
-	for (int i = 0; i < m_Width; ++i) {
-		if (!isFree(i, row)) {
-			++count;
-		}
-	}
-	return count == 0;
-}
-
-// ------------------------------------------------
-// Remove grid ds::vec2s
-// ------------------------------------------------
-template<class T>
-inline void Grid<T>::remove(const std::vector<ds::vec2>& vs,bool shift) {
-    for ( std::size_t i = 0; i < vs.size(); ++i ) {
-        ds::vec2 gp = vs[i];
-		if (!remove(gp.x, gp.y)) {
-			//LOG << "cannot remove cell at " << gp.x << " " << gp.y;
-		}
-    }
-	if (shift) {
-		int moved = 0;
-		for (int i = 0; i < m_Width; ++i) {
-			if (isColumnEmpty(i)) {
-				shiftColumns(i + 1);
-			}
-		}
-	}
-}
-
-template<class T>
-inline void Grid<T>::swap(const ds::vec2& first, const ds::vec2& second) {
-	int fi = getIndex(first);
-	int si = getIndex(second);
-	GridNode n = m_Data[fi];
-	m_Data[fi] = m_Data[si];
-	m_Data[si] = n;
-}
-
-template<class T>
-inline int Grid<T>::getMaxColumn() const {
-	for (int y = m_Height - 1; y >= 0; --y) {
-		if (!isRowEmpty(y)) {
-			return y;
-		}
-	}
-	return 0;
-}
-
-static bool isUsed(const p2i& p, p2i* array, int num) {
-	for (int i = 0; i < num; ++i) {
-		if (array[i] == p) {
-			return true;
-		}
-	}
-	return false;
-}
-
-template<class T>
-int Grid<T>::getNumberOfMoves() {
-	_numUsed = 0;
-	int moves = 0;
-	std::vector<ds::vec2> matches;
-	for (int x = 0; x < m_Width; ++x) {
-		for (int y = 0; y < m_Height; ++y) {
-			if (!isUsed(p2i(x, y),_used,_numUsed)) {
-				if (!isFree(x, y)) {
-					findMatchingNeighbours(x, y, matches);
-					if (matches.size() > 1) {
-						++moves;
-						for (int i = 0; i < matches.size(); ++i) {
-							const ds::vec2& cp = matches[i];
-							p2i c = p2i(cp.x, cp.y);
-							if (!isUsed(c,_used,_numUsed)) {
-								_used[_numUsed++] = c;
-							}
-						}
-					}
-					matches.clear();
-				}
-			}
-		}		
-	}
-	return moves;
-}
 
 }
 

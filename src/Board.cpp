@@ -19,15 +19,14 @@ Board::Board(SpriteBatchBuffer* buffer, RID textureID, GameSettings* settings) :
 
 	_messages[0] = Message{ 0.0f, _settings->prepareTTL, 1.0f, ds::Color(255,255,255,255), ds::vec4(  0, 920, 304, 35), 0.0f, false };
 	_messages[1] = Message{ 0.0f, 0.8f, 1.0f, ds::Color(255,255,255,255), ds::vec4(345, 920,  80, 35), 0.0f, false };
+	_numMatches = 0;
+	_numMovesLeft = 0;
+	_numDroppedCells = 0;
+	_numMoving = 0;
+	_highlightTimer = 0.0f;
 }
 
 Board::~Board(void) {}
-
-// -------------------------------------------------------
-// Init
-// -------------------------------------------------------
-void Board::init() {
-}
 
 // -------------------------------------------------------
 // Fill board
@@ -56,8 +55,14 @@ void Board::fill(int maxColors) {
 	_selectedX = -1;
 	_selectedY = -1;
 	_flashCount = 0;
+	_numMatches = 0;	
 	color::pick_colors(_piecesColors,8);
+	m_Grid.calculateValidMoves();
 	activateMessage(0);
+	_numDroppedCells = 0;
+	_numMovesLeft = m_Grid.getNumberOfMoves();
+	_numMoving = 0;
+	_highlightTimer = 0.0f;
 }
 
 // -------------------------------------------------------
@@ -82,8 +87,8 @@ void Board::render() {
 		}
 
 		// moving cells
-		for (size_t i = 0; i < m_MovingCells.size(); ++i) {
-			_buffer->add(m_MovingCells[i].current, TEXTURE, ds::vec2(1, 1), 0.0f, _piecesColors[m_MovingCells[i].color]);
+		for (size_t i = 0; i < _numMoving; ++i) {
+			_buffer->add(_movingCells[i].current, TEXTURE, ds::vec2(1, 1), 0.0f, _piecesColors[_movingCells[i].color]);
 		}
 	}
 
@@ -160,6 +165,7 @@ void Board::update(float elapsed) {
 		if ( scalePieces(elapsed,ScaleMode::SM_UP)) {
 			m_Mode = BM_READY;
 			activateMessage(1);
+			_highlightTimer = 0.0f;
 		}
 	}
 
@@ -176,11 +182,12 @@ void Board::update(float elapsed) {
 		if (m_Timer > _settings->flashTTL) {
 			m_Mode = BM_READY;
 			m_Timer = 0.0f;
-			m_Grid.remove(m_Points,true);
-			m_DroppedCells.clear();
-			m_Grid.dropCells(m_DroppedCells);
-			for (size_t i = 0; i < m_DroppedCells.size(); ++i) {
-				const ds::DroppedCell<MyEntry>& dc = m_DroppedCells[i];
+			m_Grid.remove(_matches, _numMatches,true);
+			_numDroppedCells = 0;
+			_numMoving = 0;
+			_numDroppedCells = m_Grid.dropCells(_droppedCells,TOTAL);
+			for (size_t i = 0; i < _numDroppedCells; ++i) {
+				const ds::DroppedCell<MyEntry>& dc = _droppedCells[i];
 				ds::vec2 to = dc.to;
 				MyEntry& e = m_Grid.get(to.x, to.y);
 				e.hidden = true;
@@ -190,9 +197,9 @@ void Board::update(float elapsed) {
 				m.color = e.color;
 				m.start = convertFromGrid(dc.from.x, dc.from.y);
 				m.end = convertFromGrid(to.x, to.y);
-				m_MovingCells.push_back(m);
+				_movingCells[_numMoving++] = m;
 			}
-			if (!m_DroppedCells.empty()) {
+			if (_numDroppedCells > 0) {
 				m_Mode = BM_MOVING;
 				m_Timer = 0.0f;
 			}			
@@ -204,19 +211,19 @@ void Board::update(float elapsed) {
 		if (m_Timer >= _settings->droppingTTL) {
 			m_Mode = BM_READY;
 			m_Timer = 0.0f;
-			for (size_t i = 0; i < m_MovingCells.size(); ++i) {
-				MovingCell& m = m_MovingCells[i];
+			for (size_t i = 0; i <_numMoving; ++i) {
+				MovingCell& m = _movingCells[i];
 				MyEntry& e = m_Grid.get(m.x, m.y);
 				e.hidden = false;
 			}
-			m_MovingCells.clear();
-			_numMovesLeft = m_Grid.getNumberOfMoves();
+			_numMoving = 0;
+			m_Grid.calculateValidMoves();
 		}
 		else {
 			if (m_Timer < _settings->droppingTTL) {
 				float norm = m_Timer / _settings->droppingTTL;
-				for (size_t i = 0; i < m_MovingCells.size(); ++i) {
-					MovingCell& m = m_MovingCells[i];
+				for (size_t i = 0; i < _numMoving; ++i) {
+					MovingCell& m = _movingCells[i];
 					m.current = tweening::interpolate(&tweening::linear, m.start, m.end, m_Timer, _settings->droppingTTL);
 				}
 			}
@@ -245,6 +252,7 @@ void Board::update(float elapsed) {
 		}
 	}
 	
+	// update all pieces
 	for (int x = 0; x < MAX_X; ++x) {
 		for (int y = 0; y < MAX_Y; ++y) {
 			if (!m_Grid.isFree(x, y)) {
@@ -275,8 +283,29 @@ void Board::update(float elapsed) {
 			}
 		}
 	}
+
+	// check if we should help the player and give him a hint
+	_highlightTimer += elapsed;
+	if (_highlightTimer > _settings->highlightTime) {
+		highlightBlock();
+		_highlightTimer = 0.0f;
+	}
 }
 
+// -------------------------------------------------------
+// highlight a matching block to help player
+// -------------------------------------------------------
+void Board::highlightBlock() {
+	int num = m_Grid.getMatchingBlock(_matches, TOTAL);
+	for (int i = 0; i < num; ++i) {
+		const ds::p2i& m = _matches[i];
+		MyEntry& me = m_Grid(m.x, m.y);
+		if (me.state == TS_NORMAL) {
+			me.timer = 0.0f;
+			me.state = TS_WIGGLE;
+		}
+	}
+}
 // -------------------------------------------------------
 // start clearing board
 // -------------------------------------------------------
@@ -310,23 +339,24 @@ void Board::move(const ds::vec2& mousePos) {
 // -------------------------------------------------------
 bool Board::select(Score* score) {
 	if ( m_Mode == BM_READY ) {
+		_highlightTimer = 0.0f;
 		int cx = -1;
 		int cy = -1;
 		if (input::convertMouse2Grid(&cx,&cy)) {
 			MyEntry& me = m_Grid(cx, cy);
-			m_Points.clear();		
-			m_Grid.findMatchingNeighbours(cx,cy,m_Points);
-			if ( m_Points.size() > 1 ) {				
+			//m_Points.clear();		
+			_numMatches = m_Grid.findMatchingNeighbours(cx,cy,_matches,TOTAL);
+			if (_numMatches > 1 ) {
 				m_Timer = 0.0f;
 				m_Mode = BM_FLASHING;
-				score->points += m_Points.size() * 10;				
-				if (m_Points.size() > score->highestCombo) {
-					score->highestCombo = m_Points.size();
+				score->points += _numMatches * 10;
+				if (_numMatches > score->highestCombo) {
+					score->highestCombo = _numMatches;
 				}
-				score->itemsCleared += m_Points.size();
-				for ( size_t i = 0; i < m_Points.size(); ++i ) {
-					ds::vec2* gp = &m_Points[i];
-					MyEntry& c = m_Grid.get(gp->x, gp->y);
+				score->itemsCleared += _numMatches;
+				for ( size_t i = 0; i < _numMatches; ++i ) {
+					const ds::p2i& gp = _matches[i];
+					MyEntry& c = m_Grid.get(gp.x, gp.y);
 					c.state = TS_SHRINKING;
 					c.timer = 0.0f;
 					++_flashCount;

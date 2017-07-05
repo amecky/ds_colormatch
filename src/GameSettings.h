@@ -12,5 +12,5 @@ struct GameSettings {
 	float wiggleScale;
 	float clearMinTTL;
 	float clearMaxTTL;
-	
+	float highlightTime;
 };
