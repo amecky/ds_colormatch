@@ -103,7 +103,7 @@ void Board::render() {
 // -------------------------------------------------------
 // scale pieces for fade in / out
 // -------------------------------------------------------
-bool Board::scalePieces(float elapsed, ScaleMode scaleMode) {
+ScaleState Board::scalePieces(float elapsed, ScaleMode scaleMode) {
 	int cnt = 0;
 	int total = 0;
 	for (int x = 0; x < MAX_X; ++x) {
@@ -127,9 +127,9 @@ bool Board::scalePieces(float elapsed, ScaleMode scaleMode) {
 		}
 	}
 	if (cnt == total) {
-		return true;
+		return SCS_DONE;
 	}
-	return false;
+	return SCS_RUNNING;
 }
 
 // -------------------------------------------------------
@@ -247,7 +247,7 @@ void Board::update(float elapsed) {
 	}
 
 	else if (m_Mode == BM_CLEARING) {
-		if (scalePieces(elapsed, ScaleMode::SM_DOWN)) {
+		if (scalePieces(elapsed, ScaleMode::SM_DOWN) == ScaleState::SCS_DONE) {
 			m_Mode = BM_IDLE;
 		}
 	}

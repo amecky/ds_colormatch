@@ -29,6 +29,7 @@
     <ClInclude Include="src\Dialog.h" />
     <ClInclude Include="src\GameSettings.h" />
     <ClInclude Include="src\Grid.h" />
+    <ClInclude Include="src\Sandbox.h" />
     <ClInclude Include="src\utils\colors.h" />
     <ClInclude Include="src\utils\HUD.h" />
     <ClInclude Include="src\utils\tweening.h" />
@@ -38,6 +39,7 @@
     <ClCompile Include="src\Board.cpp" />
     <ClCompile Include="src\Dialog.cpp" />
     <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\Sandbox.cpp" />
     <ClCompile Include="src\utils\colors.cpp" />
     <ClCompile Include="src\utils\HUD.cpp" />
     <ClCompile Include="src\utils\tweening.cpp" />

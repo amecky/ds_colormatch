@@ -39,6 +39,7 @@
     <ClInclude Include="ext\SpriteBatchBuffer.h">
       <Filter>ext</Filter>
     </ClInclude>
+    <ClInclude Include="src\Sandbox.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Board.cpp" />
@@ -56,6 +57,7 @@
     <ClCompile Include="src\utils\colors.cpp">
       <Filter>utils</Filter>
     </ClCompile>
+    <ClCompile Include="src\Sandbox.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Colors.rc" />

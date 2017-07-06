@@ -54,6 +54,11 @@ public:
 	}
 };
 
+enum ScaleState {
+	SCS_IDLE,
+	SCS_RUNNING,
+	SCS_DONE
+};
 // -------------------------------------------------------
 // Board
 // -------------------------------------------------------
@@ -105,7 +110,7 @@ public:
 	void highlightBlock();
 private:
 	void activateMessage(int idx);
-	bool scalePieces(float elapsed, ScaleMode scaleMode);
+	ScaleState scalePieces(float elapsed, ScaleMode scaleMode);
 	ColorGrid m_Grid;
 	ds::DroppedCell<MyEntry> _droppedCells[TOTAL];
 	int _numDroppedCells;
