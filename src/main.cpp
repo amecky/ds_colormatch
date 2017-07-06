@@ -85,10 +85,26 @@ void initialize() {
 	ds::init(rs);
 }
 
+enum FloatInDirection {
+	FID_LEFT,
+	FID_RIGHT
+};
+
+int floatButton(float time, float ttl, FloatInDirection dir) {
+	if (time <= ttl) {
+		if (dir == FloatInDirection::FID_LEFT) {
+			return tweening::interpolate(tweening::easeOutElastic, -200, 512, time, ttl);
+		}
+		else {
+			return tweening::interpolate(tweening::easeOutElastic, 1020, 512, time, ttl);
+		}
+	}
+	return 512;
+}
 // ---------------------------------------------------------------
 // show game over menu
 // ---------------------------------------------------------------
-int showGameOverMenu(const Score& score) {
+int showGameOverMenu(const Score& score, float time, float ttl) {
 	int ret = 0;
 	char buffer[256];
 	dialog::begin();
@@ -106,10 +122,12 @@ int showGameOverMenu(const Score& score) {
 	dialog::Image(ds::vec2(512, 400), ds::vec4(420, 570, 500, 42));
 	sprintf_s(buffer, 256, "Highest combo: %d", score.highestCombo);
 	dialog::Text(ds::vec2(400, 400), buffer);
-	if (dialog::Button(ds::vec2(512, 320), ds::vec4(0, 70, 260, 60))) {
+	int dx = floatButton(time, ttl, FloatInDirection::FID_LEFT);
+	if (dialog::Button(ds::vec2(dx, 320), ds::vec4(0, 70, 260, 60))) {
 		ret = 1;
 	}
-	if (dialog::Button(ds::vec2(512, 230), ds::vec4(270, 130, 260, 60))) {
+	dx = floatButton(time, ttl, FloatInDirection::FID_RIGHT);
+	if (dialog::Button(ds::vec2(dx, 230), ds::vec4(270, 130, 260, 60))) {
 		ret = 2;
 	}
 	dialog::end();
@@ -119,14 +137,16 @@ int showGameOverMenu(const Score& score) {
 // ---------------------------------------------------------------
 // show main menu
 // ---------------------------------------------------------------
-int showMainMenu() {
+int showMainMenu(float time, float ttl) {
 	int ret = 0;
 	dialog::begin();
 	dialog::Image(ds::vec2(512, 35), ds::vec4(0, 955, 530, 12));
-	if (dialog::Button(ds::vec2(512, 438), ds::vec4(0, 70, 260, 60))) {
+	int dx = floatButton(time, ttl, FloatInDirection::FID_LEFT);
+	if (dialog::Button(ds::vec2(dx, 438), ds::vec4(0, 70, 260, 60))) {
 		ret = 1;
 	}
-	if (dialog::Button(ds::vec2(512, 298), ds::vec4(270, 130, 260, 60))) {
+	dx = floatButton(time, ttl, FloatInDirection::FID_RIGHT);
+	if (dialog::Button(ds::vec2(dx, 298), ds::vec4(270, 130, 260, 60))) {
 		ret = 2;
 	}
 	dialog::end();
@@ -207,16 +227,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	DebugPanel infoDbgPanel  = { 'I', false, false, 1 };
 	DebugPanel settingsPanel = { 'S', false, false, 1 };
 
+	float menuTimer = 0.0f;
+	float menuTTL = 1.6f;
+
 	while (ds::isRunning() && running) {
 
 		handleDebugInput(&backDbgPanel);
 		handleDebugInput(&infoDbgPanel);
 		handleDebugInput(&settingsPanel);
-
-		if (ds::isKeyPressed('C')) {
-			board->clearBoard();
-			mode = GM_GAMEOVER;
-		}
 
 		ds::begin();
 
@@ -252,9 +270,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		}
 
 		if (mode == GM_MENU) {
-			int ret = showMainMenu();
+			menuTimer += static_cast<float>(ds::getElapsedSeconds());
+			int ret = showMainMenu(menuTimer, menuTTL);
 			if (ret == 1) {
 				board->fill(4);
+				hud.reset();
 				mode = GM_RUNNING;
 			}
 			else  if (ret == 2) {
@@ -262,13 +282,15 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 			}
 		}
 		else if (mode == GM_GAMEOVER) {
+			menuTimer += static_cast<float>(ds::getElapsedSeconds());
 			board->render();
-			int ret = showGameOverMenu(score);
+			int ret = showGameOverMenu(score,menuTimer,menuTTL);
 			if (ret == 1) {
 				board->fill(4);
 				mode = GM_RUNNING;
 			}
 			else if (ret == 2) {
+				menuTimer = 0.0f;
 				mode = GM_MENU;
 			}
 		}
@@ -293,6 +315,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 				board->clearBoard();
 				score.minutes = hud.getMinutes();
 				score.seconds = hud.getSeconds();
+				menuTimer = 0.0f;
 				mode = GM_GAMEOVER;
 			}
 		}
@@ -324,6 +347,15 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 					if (gui::Button("Move")) {
 						board->move();
 					}
+				}
+				gui::Input("Button ttl", &menuTTL);
+				if (gui::Button("Reset timer")) {
+					menuTimer = 0.0f;
+				}
+				if (gui::Button("Game Over")) {
+					board->clearBoard();
+					mode = GM_GAMEOVER;
+					menuTimer = 0.0f;
 				}
 			}
 			if (backDbgPanel.active) {

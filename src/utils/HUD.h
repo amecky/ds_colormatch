@@ -20,7 +20,7 @@ public:
 	void render();
 	void tick(float dt);
 	void reset();
-	void rebuildScore();
+	void rebuildScore(bool flash = true);
 	int getMinutes() const {
 		return _minutes[0] * 10 + _minutes[1];
 	}
@@ -32,6 +32,8 @@ private:
 	int _numbers[6];
 	int _minutes[2];
 	int _seconds[2];
+	int _scaleFlags[6];
+	float _scalingTimers[6];
 	SpriteBatchBuffer* _buffer;
 	RID _textureID;
 	Score* _score;

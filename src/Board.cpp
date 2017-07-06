@@ -17,8 +17,8 @@ Board::Board(SpriteBatchBuffer* buffer, RID textureID, GameSettings* settings) :
 	_gridTex[2] = ds::vec4( 30, 200, 240, 486);
 	_gridTex[3] = ds::vec4(300, 200, 110, 486);
 
-	_messages[0] = Message{ 0.0f, _settings->prepareTTL, 1.0f, ds::Color(255,255,255,255), ds::vec4(  0, 920, 304, 35), 0.0f, false };
-	_messages[1] = Message{ 0.0f, 0.8f, 1.0f, ds::Color(255,255,255,255), ds::vec4(345, 920,  80, 35), 0.0f, false };
+	_messages[0] = Message{ 0.0f, _settings->prepareTTL, 1.0f, ds::Color(255,255,255,255), ds::vec4(  420, 645, 500, 45), 0.0f, false };
+	_messages[1] = Message{ 0.0f, 0.8f, 1.0f, ds::Color(255,255,255,255), ds::vec4(100, 0,  120, 45), 0.0f, false };
 	_numMatches = 0;
 	_numMovesLeft = 0;
 	_numDroppedCells = 0;
@@ -162,7 +162,7 @@ void Board::update(float elapsed) {
 	}
 	
 	if (m_Mode == BM_FILLING) {
-		if ( scalePieces(elapsed,ScaleMode::SM_UP)) {
+		if ( scalePieces(elapsed,ScaleMode::SM_UP) == ScaleState::SCS_DONE) {
 			m_Mode = BM_READY;
 			activateMessage(1);
 			_highlightTimer = 0.0f;
@@ -203,6 +203,10 @@ void Board::update(float elapsed) {
 				m_Mode = BM_MOVING;
 				m_Timer = 0.0f;
 			}			
+			else {
+				m_Grid.calculateValidMoves();
+				m_Grid.fillGaps();
+			}
 		}
 		
 	}
@@ -218,6 +222,7 @@ void Board::update(float elapsed) {
 			}
 			_numMoving = 0;
 			m_Grid.calculateValidMoves();
+			m_Grid.fillGaps();
 		}
 		else {
 			if (m_Timer < _settings->droppingTTL) {
@@ -284,11 +289,13 @@ void Board::update(float elapsed) {
 		}
 	}
 
-	// check if we should help the player and give him a hint
-	_highlightTimer += elapsed;
-	if (_highlightTimer > _settings->highlightTime) {
-		highlightBlock();
-		_highlightTimer = 0.0f;
+	if (m_Mode == BM_READY) {
+		// check if we should help the player and give him a hint
+		_highlightTimer += elapsed;
+		if (_highlightTimer > _settings->highlightTime) {
+			highlightBlock();
+			_highlightTimer = 0.0f;
+		}
 	}
 }
 
