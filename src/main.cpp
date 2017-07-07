@@ -106,22 +106,17 @@ int floatButton(float time, float ttl, FloatInDirection dir) {
 // ---------------------------------------------------------------
 int showGameOverMenu(const Score& score, float time, float ttl) {
 	int ret = 0;
-	char buffer[256];
 	dialog::begin();
 	dialog::Image(ds::vec2(512, 620), ds::vec4(0, 870, 530, 45));
 	ds::vec2 mp = ds::getMousePosition();
 	dialog::Image(ds::vec2(512, 550), ds::vec4(420, 570, 500, 42));
-	sprintf_s(buffer, 256, "Pieces cleared: %d", score.itemsCleared);
-	dialog::Text(ds::vec2(400, 550), buffer);
+	dialog::FormattedText(ds::vec2(400, 550), "Pieces cleared: %d", score.itemsCleared);
 	dialog::Image(ds::vec2(512, 500), ds::vec4(420, 570, 500, 42));
-	sprintf_s(buffer, 256, "Time: %02d:%02d", score.minutes, score.seconds);
-	dialog::Text(ds::vec2(400, 500), buffer);
+	dialog::FormattedText(ds::vec2(400, 500), "Time: %02d:%02d", score.minutes, score.seconds);
 	dialog::Image(ds::vec2(512, 450), ds::vec4(420, 570, 500, 42));
-	sprintf_s(buffer, 256, "Score: %d", score.points);
-	dialog::Text(ds::vec2(400, 450), buffer);
+	dialog::FormattedText(ds::vec2(400, 450), "Score: %d", score.points);
 	dialog::Image(ds::vec2(512, 400), ds::vec4(420, 570, 500, 42));
-	sprintf_s(buffer, 256, "Highest combo: %d", score.highestCombo);
-	dialog::Text(ds::vec2(400, 400), buffer);
+	dialog::FormattedText(ds::vec2(400, 400), "Highest combo: %d", score.highestCombo);
 	int dx = floatButton(time, ttl, FloatInDirection::FID_LEFT);
 	if (dialog::Button(ds::vec2(dx, 320), ds::vec4(0, 70, 260, 60))) {
 		ret = 1;
@@ -140,13 +135,18 @@ int showGameOverMenu(const Score& score, float time, float ttl) {
 int showMainMenu(float time, float ttl) {
 	int ret = 0;
 	dialog::begin();
+	int dy = 550;
+	if (time <= ttl) {
+		dy = tweening::interpolate(tweening::easeOutElastic, 900, 550, time, ttl);
+	}
+	dialog::Image(ds::vec2(512, dy), ds::vec4(200, 700, 760, 50));
 	dialog::Image(ds::vec2(512, 35), ds::vec4(0, 955, 530, 12));
 	int dx = floatButton(time, ttl, FloatInDirection::FID_LEFT);
-	if (dialog::Button(ds::vec2(dx, 438), ds::vec4(0, 70, 260, 60))) {
+	if (dialog::Button(ds::vec2(dx, 400), ds::vec4(0, 70, 260, 60))) {
 		ret = 1;
 	}
 	dx = floatButton(time, ttl, FloatInDirection::FID_RIGHT);
-	if (dialog::Button(ds::vec2(dx, 298), ds::vec4(270, 130, 260, 60))) {
+	if (dialog::Button(ds::vec2(dx, 270), ds::vec4(270, 130, 260, 60))) {
 		ret = 2;
 	}
 	dialog::end();
@@ -243,6 +243,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		//
 		// Background
 		//
+		/*
 		bgSettings.timer += ds::getElapsedSeconds();
 		float norm = bgSettings.timer / bgSettings.ttl;
 		ds::Color clr = tweening::interpolate(tweening::linear, bgSettings.startColor, bgSettings.endColor, bgSettings.timer, bgSettings.ttl);
@@ -264,6 +265,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		// top and bottom bar
 		spriteBuffer.add(ds::vec2(512, 734), ds::vec4(0, 720, 1024, 68));
 		spriteBuffer.add(ds::vec2(512, 34), ds::vec4(0, 800, 1024, 68));
+		*/
+
+		for (int i = 0; i < 6; ++i) {
+			spriteBuffer.add(ds::vec2(-50 + i * 200, 384), ds::vec4(0, 200, 200, 600));
+		}
 
 		if (mode == GM_RUNNING) {
 			board->render();
@@ -298,7 +304,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 			if (ds::isMouseButtonPressed(0) && !pressed) {
 				if ( board->select(&score)) {
 					hud.rebuildScore();
-					
+					hud.setPieces(score.piecesLeft);
 				}
 				pressed = true;
 			}
@@ -365,7 +371,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 				gui::Value("Max A", bgSettings.maxAlpha);
 				gui::Value("Start", bgSettings.startColor);
 				gui::Value("End", bgSettings.endColor);
-				gui::Value("Current", clr);
+				//gui::Value("Current", clr);
 				gui::Value("Index", bgSettings.colorIndex);
 			}
 			if (settingsPanel.active) {

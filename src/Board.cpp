@@ -12,11 +12,6 @@ ds::vec2 convertFromGrid(int gx, int gy) {
 }
 
 Board::Board(SpriteBatchBuffer* buffer, RID textureID, GameSettings* settings) : _buffer(buffer) , _textureID(textureID) , _settings(settings) {
-	_gridTex[0] = ds::vec4(  0, 200, 270, 486);
-	_gridTex[1] = ds::vec4( 30, 200, 240, 486);
-	_gridTex[2] = ds::vec4( 30, 200, 240, 486);
-	_gridTex[3] = ds::vec4(300, 200, 110, 486);
-
 	_messages[0] = Message{ 0.0f, _settings->prepareTTL, 1.0f, ds::Color(255,255,255,255), ds::vec4(  420, 645, 500, 45), 0.0f, false };
 	_messages[1] = Message{ 0.0f, 0.8f, 1.0f, ds::Color(255,255,255,255), ds::vec4(100, 0,  120, 45), 0.0f, false };
 	_numMatches = 0;
@@ -32,7 +27,7 @@ Board::~Board(void) {}
 // Fill board
 // -------------------------------------------------------
 void Board::fill(int maxColors) {
-	m_CellCounter = 0;
+	_cellCounter = 0;
 	for ( int x = 0; x < MAX_X; ++x ) {		
 		for ( int y = 0; y < MAX_Y; ++y ) {		
 			int cid = ds::random(0, maxColors);
@@ -46,7 +41,7 @@ void Board::fill(int maxColors) {
 			e.timer = 0.0f;
 			e.ttl = ds::random(_settings->scaleUpMinTTL, _settings->scaleUpMaxTTL);
 			m_Grid.set(x, y, e);
-			++m_CellCounter;
+			++_cellCounter;
 		}
 	}
 	m_Mode = BM_PREPARE;
@@ -63,16 +58,14 @@ void Board::fill(int maxColors) {
 	_numMovesLeft = m_Grid.getNumberOfMoves();
 	_numMoving = 0;
 	_highlightTimer = 0.0f;
+	//_cellCounter = TOTAL;
 }
 
 // -------------------------------------------------------
 // Draw
 // -------------------------------------------------------
 void Board::render() {
-	_buffer->add(ds::vec2(213, 362), _gridTex[0]);
-	_buffer->add(ds::vec2(468, 362), _gridTex[1]);
-	_buffer->add(ds::vec2(708, 362), _gridTex[2]);
-	_buffer->add(ds::vec2(883, 362), _gridTex[3]);
+	_buffer->add(ds::vec2(512, 140), ds::vec4(0,810,840,10));
 	if (m_Mode != BM_PREPARE) {
 		// pieces
 		for (int x = 0; x < MAX_X; ++x) {
@@ -204,8 +197,8 @@ void Board::update(float elapsed) {
 				m_Timer = 0.0f;
 			}			
 			else {
-				m_Grid.calculateValidMoves();
 				m_Grid.fillGaps();
+				m_Grid.calculateValidMoves();				
 			}
 		}
 		
@@ -221,8 +214,8 @@ void Board::update(float elapsed) {
 				e.hidden = false;
 			}
 			_numMoving = 0;
-			m_Grid.calculateValidMoves();
 			m_Grid.fillGaps();
+			m_Grid.calculateValidMoves();			
 		}
 		else {
 			if (m_Timer < _settings->droppingTTL) {
@@ -356,6 +349,8 @@ bool Board::select(Score* score) {
 					score->highestCombo = _numMatches;
 				}
 				score->itemsCleared += _numMatches;
+				_cellCounter -= _numMatches;
+				score->piecesLeft = _cellCounter;
 				for ( size_t i = 0; i < _numMatches; ++i ) {
 					const ds::p2i& gp = _matches[i];
 					MyEntry& c = m_Grid.get(gp.x, gp.y);

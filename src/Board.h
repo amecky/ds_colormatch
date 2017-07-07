@@ -118,12 +118,11 @@ private:
 	int _numMoving;
 	BoardMode m_Mode;
 	float m_Timer;
-	int m_CellCounter;
-	ds::vec4 _gridTex[4];
 	int m_Counter;
 	GameSettings* _settings;
 	int _flashCount;
 
+	int _cellCounter;
 	int _selectedX;
 	int _selectedY;
 	SpriteBatchBuffer* _buffer;

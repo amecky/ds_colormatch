@@ -1,7 +1,8 @@
 #include "HUD.h"
 #include "tweening.h"
+#include "..\Constants.h"
 
-HUD::HUD(SpriteBatchBuffer* buffer, RID textureID, Score* score) : _buffer(buffer) , _textureID(textureID) , _score(score) {
+HUD::HUD(SpriteBatchBuffer* buffer, RID textureID, Score* score) : _buffer(buffer) , _textureID(textureID) , _score(score) , _pieces(3), _points(6), _minutes(2), _seconds(2) {
 	reset();
 }
 
@@ -12,15 +13,9 @@ HUD::~HUD() {
 // reset
 // ------------------------------------------------------
 void HUD::reset() {
-	for (int i = 0; i < 6; ++i) {
-		_numbers[i] = 0;
-		_scaleFlags[i] = 0;
-		_scalingTimers[i] = 0;
-	}
-	_minutes[0] = 0;
-	_minutes[1] = 0;
-	_seconds[0] = 0;
-	_seconds[1] = 0;
+	_minutes.setValue(0);
+	_seconds.setValue(0);
+	_pieces.setValue(TOTAL);
 	_timer = 0.0f;
 	_score->points = 0;
 	_score->minutes = 0;
@@ -28,8 +23,22 @@ void HUD::reset() {
 	_score->itemsCleared = 0;
 	_score->highestCombo = 0;
 	rebuildScore(false);
+	setPieces(TOTAL);
 }
 
+// ------------------------------------------------------
+// scale number
+// ------------------------------------------------------
+void HUD::scaleNumber(Number& nr, float dt) {
+	for (int i = 0; i < nr.size; ++i) {
+		if (nr.scaleFlags[i] == 1) {
+			nr.scalingTimers[i] += dt;
+			if (nr.scalingTimers[i] >= 0.4f) {
+				nr.scaleFlags[i] = 0;
+			}
+		}
+	}
+}
 // ------------------------------------------------------
 // tick
 // ------------------------------------------------------
@@ -37,79 +46,60 @@ void HUD::tick(float dt) {
 	_timer += dt;
 	if (_timer > 1.0f) {
 		_timer -= 1.0f;
-		_seconds[1] += 1;
-		if (_seconds[1] >= 10) {
-			_seconds[1] = 0;
-			_seconds[0] += 1;
-			if (_seconds[0] >= 6) {
-				_seconds[0] = 0;
-				_minutes[1] += 1;
-				if (_minutes[1] >= 10) {
-					_minutes[1] = 0;
-					_minutes[0] += 1;
-				}
-			}
+		++_seconds.value;
+		if (_seconds.value >= 60) {
+			_seconds.value = 0;
+			++_minutes.value;
 		}
 	}
-	for (int i = 0; i < 6; ++i) {
-		if (_scaleFlags[i] == 1) {
-			_scalingTimers[i] += dt;
-			if (_scalingTimers[i] >= 0.4f) {
-				_scaleFlags[i] = 0;
-			}
-		}
-	}
+	_minutes.setValue(_minutes.value, false);
+	_seconds.setValue(_seconds.value, false);
+	scaleNumber(_points, dt);
+	scaleNumber(_pieces, dt);
 }
 
 // ------------------------------------------------------
 // set number
 // ------------------------------------------------------
 void HUD::rebuildScore(bool flash) {
-	int tmp = _score->points;
-	int div = 1;
-	for (int i = 0; i < 6; ++i) {
-		if (i > 0) {
-			div *= 10;
-		}
-	}
-	for (int i = 0; i < 6; ++i) {
-		int r = tmp / div;
-		if (r != _numbers[i] && flash) {
-			_scaleFlags[i] = 1;
-			_scalingTimers[i] = 0.0f;
-		}
-		else {
-			_scaleFlags[i] = 0;
-		}
-		_numbers[i] = r;
-		tmp = tmp - r * div;
-		div /= 10;
-	}
+	_points.setValue(_score->points);
 }
 
+// ------------------------------------------------------
+// set pieces
+// ------------------------------------------------------
+void HUD::setPieces(int pc) {
+	if (pc < 0) {
+		pc = 0;
+	}
+	_pieces.setValue(pc);
+}
+
+void HUD::renderNumber(const Number& nr, const ds::vec2& startPos) {
+	ds::vec2 p = startPos;
+	float width = nr.size * 38.0f;
+	p.x = startPos.x - width * 0.5f;
+	for (int i = 0; i < nr.size; ++i) {
+		float scale = 1.0f;
+		if (nr.scaleFlags[i] == 1) {
+			scale = tweening::interpolate(tweening::easeOutElastic, 2.5f, 1.0f, nr.scalingTimers[i], 0.4f);
+		}
+		_buffer->add(p, ds::vec4(200 + nr.items[i] * 38, 200, 38, 30), ds::vec2(1.0f, scale));
+		p.x += 38.0f;
+	}
+}
 // ------------------------------------------------------
 // render
 // ------------------------------------------------------
 void HUD::render() {
 	
-	ds::vec2 p(103, 30);
-	for (int i = 0; i < 6; ++i) {
-		float scale = 1.0f;
-		if (_scaleFlags[i] == 1) {
-			scale = tweening::interpolate(tweening::easeOutElastic, 2.5f, 1.0f, _scalingTimers[i], 0.4f);
-		}
-		_buffer->add(p, ds::vec4(340 + _numbers[i] * 48, 0, 46, 42), ds::vec2(1.0f,scale));
-		p.x += 48.0f;
-	}
+	ds::vec2 p(180, 30);
+	renderNumber(_points, p);
+	p.x = 512.0f;
+	renderNumber(_pieces, p);
 	p.x = 725.0f;
-	for (int i = 0; i < 2; ++i) {
-		_buffer->add(p, ds::vec4(340 + _minutes[i] * 48, 0, 46, 42));
-		p.x += 48.0f;
-	}
-	_buffer->add(p, ds::vec4(820, 0, 46, 42));
-	p.x += 48.0f;
-	for (int i = 0; i < 2; ++i) {
-		_buffer->add(p, ds::vec4(340 + _seconds[i] * 48, 0, 46, 42));
-		p.x += 48.0f;
-	}
+	renderNumber(_minutes, p);
+	p.x += 38.0f * 3.0f;
+	renderNumber(_seconds, p);
+	
 }
