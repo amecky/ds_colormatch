@@ -204,7 +204,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	bgSettings.startColor = bgSettings.colors[0];
 	bgSettings.endColor = bgSettings.colors[1];
 
-	Board* board = new Board(&spriteBuffer,textureID, &settings);
+	Board* board = new Board(&spriteBuffer,&settings);
 
 	Score score;
 
@@ -226,46 +226,21 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	DebugPanel backDbgPanel  = { 'D', false, false, 1 };
 	DebugPanel infoDbgPanel  = { 'I', false, false, 1 };
 	DebugPanel settingsPanel = { 'S', false, false, 1 };
+	DebugPanel boardPanel    = { 'B', false, false, 1 };
 
 	float menuTimer = 0.0f;
 	float menuTTL = 1.6f;
 
 	while (ds::isRunning() && running) {
 
+		handleDebugInput(&boardPanel);
 		handleDebugInput(&backDbgPanel);
 		handleDebugInput(&infoDbgPanel);
-		handleDebugInput(&settingsPanel);
+		handleDebugInput(&settingsPanel);		
 
 		ds::begin();
 
-		spriteBuffer.begin();
-
-		//
-		// Background
-		//
-		/*
-		bgSettings.timer += ds::getElapsedSeconds();
-		float norm = bgSettings.timer / bgSettings.ttl;
-		ds::Color clr = tweening::interpolate(tweening::linear, bgSettings.startColor, bgSettings.endColor, bgSettings.timer, bgSettings.ttl);
-		clr.a = tweening::interpolate(tweening::linear, bgSettings.minAlpha, bgSettings.maxAlpha, bgSettings.timer, bgSettings.ttl);
-		if (norm >= 1.0f) {
-			bgSettings.timer = 0.0f;
-			bgSettings.ttl = ds::random(2.0f,4.0f);
-			bgSettings.minAlpha = bgSettings.maxAlpha;
-			bgSettings.maxAlpha = ds::random(0.6f, 0.8f);
-			bgSettings.startColor = bgSettings.colors[bgSettings.colorIndex];
-			++bgSettings.colorIndex;
-			if (bgSettings.colorIndex >= 8) {
-				bgSettings.colorIndex = 0;
-			}
-			bgSettings.endColor = bgSettings.colors[bgSettings.colorIndex];
-		}
-		spriteBuffer.add(ds::vec2(512, 384), ds::vec4(512, 200, 512, 316),ds::vec2(2,2),0.0f,clr);
-
-		// top and bottom bar
-		spriteBuffer.add(ds::vec2(512, 734), ds::vec4(0, 720, 1024, 68));
-		spriteBuffer.add(ds::vec2(512, 34), ds::vec4(0, 800, 1024, 68));
-		*/
+		spriteBuffer.begin();		
 
 		for (int i = 0; i < 6; ++i) {
 			spriteBuffer.add(ds::vec2(-50 + i * 200, 384), ds::vec4(0, 200, 200, 600));
@@ -336,7 +311,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		
 		spriteBuffer.flush();
 
-		if (infoDbgPanel.active || backDbgPanel.active || settingsPanel.active) {
+		if (infoDbgPanel.active || backDbgPanel.active || settingsPanel.active || boardPanel.active) {
 			gui::start(ds::vec2(0, 755));
 			if (infoDbgPanel.active) {
 				gui::begin("Debug", &infoDbgPanel.state);
@@ -397,6 +372,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 						board->clearBoard();
 					}
 				}
+			}
+			if (boardPanel.active) {
+				gui::begin("Board", &boardPanel.state);
+				board->debug();
 			}
 			gui::end();
 		}

@@ -4,6 +4,7 @@
 #include "utils\utils.h"
 #include "utils\colors.h"
 #include "utils\HUD.h"
+#include <ds_imgui.h>
 
 const static ds::vec4 TEXTURE = ds::vec4(0, 0, CELL_SIZE, CELL_SIZE);
 
@@ -11,7 +12,7 @@ ds::vec2 convertFromGrid(int gx, int gy) {
 	return ds::vec2(STARTX + gx * CELL_SIZE, STARTY + gy * CELL_SIZE);
 }
 
-Board::Board(SpriteBatchBuffer* buffer, RID textureID, GameSettings* settings) : _buffer(buffer) , _textureID(textureID) , _settings(settings) {
+Board::Board(SpriteBatchBuffer* buffer, GameSettings* settings) : _buffer(buffer) , _settings(settings) {
 	_messages[0] = Message{ 0.0f, _settings->prepareTTL, 1.0f, ds::Color(255,255,255,255), ds::vec4(  420, 645, 500, 45), 0.0f, false };
 	_messages[1] = Message{ 0.0f, 0.8f, 1.0f, ds::Color(255,255,255,255), ds::vec4(100, 0,  120, 45), 0.0f, false };
 	_numMatches = 0;
@@ -363,4 +364,24 @@ bool Board::select(Score* score) {
 		}
 	}
 	return false;
+}
+
+void Board::debug() {
+	std::string dbgTxt;
+	char buffer[32];
+	for (int y = m_Grid.height() - 1; y >= 0; --y) {
+		dbgTxt.clear();
+		for (int x = 0; x < m_Grid.width(); ++x) {
+			ds::p2i gp(x, y);
+			if (m_Grid.isUsed(x, y)) {
+				const MyEntry& c = m_Grid.get(gp.x, gp.y);			
+				sprintf_s(buffer, 32, "%2d ", c.color);
+			}
+			else {
+				sprintf_s(buffer, 32, "   ");
+			}
+			dbgTxt.append(buffer);
+		}
+		gui::FormattedText("%2d: %s", y, dbgTxt.c_str());
+	}
 }

@@ -165,18 +165,17 @@ public:
 		return false;
 	}
 
+	// ------------------------------------------------
+	// fill gaps
+	// ------------------------------------------------
 	void fillGaps() {
 		int moved = 0;
-		//int max = getMaxColumn();
-		// FIXME: only up to max columns
 		for (int i = 0; i < m_Width - 1; ++i) {
 			if (isColumnEmpty(i)) {
 				int end = i + 1;
 				while (isColumnEmpty(end)) {
 					++end;
 				}
-				// FIXME: there might be more than one
-				// find next to 
 				shiftColumns(i,end);
 			}
 		}
@@ -189,18 +188,8 @@ public:
 			const p2i& gp = points[i];
 			remove(gp.x, gp.y);
 		}
-		if (shift) {
-			int moved = 0;
-			int max = getMaxColumn();
-			// FIXME: only up to max columns
-			for (int i = 0; i < max; ++i) {
-				if (isColumnEmpty(i)) {
-					// FIXME: there might be more than one
-					// find next to 
-					shiftColumns(i + 1);
-				}
-			}
-		}
+		fillGaps();
+		calculateValidMoves();
 	}
 
     const int width() const {
@@ -300,9 +289,7 @@ public:
 	// ------------------------------------------------
 	void shiftColumns(int target, int source) {
 		if (target >= 0 && target < m_Width) {
-			//for (int y = 0; y < m_Height; ++y) {
 			copyColumn(source, target);
-			//}
 			clearColumn(source);
 		}
 	}

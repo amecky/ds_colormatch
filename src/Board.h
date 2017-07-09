@@ -90,7 +90,7 @@ enum ScaleMode {
 };
 
 public:
-	Board(SpriteBatchBuffer* buffer, RID textureID, GameSettings* settings);
+	Board(SpriteBatchBuffer* buffer, GameSettings* settings);
 	virtual ~Board();
 	void fill(int maxColors);
 	bool select(Score* score);
@@ -108,6 +108,7 @@ public:
 		return m_Grid.getNumberOfMoves();
 	}
 	void highlightBlock();
+	void debug();
 private:
 	void activateMessage(int idx);
 	ScaleState scalePieces(float elapsed, ScaleMode scaleMode);
@@ -126,7 +127,6 @@ private:
 	int _selectedX;
 	int _selectedY;
 	SpriteBatchBuffer* _buffer;
-	RID _textureID;
 	ds::Color _piecesColors[8];
 	Message _messages[2];
 	int _numMovesLeft;
