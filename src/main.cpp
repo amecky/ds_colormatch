@@ -297,6 +297,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 				score.minutes = hud.getMinutes();
 				score.seconds = hud.getSeconds();
 				menuTimer = 0.0f;
+
+				int totalScore = score.points - score.piecesLeft * 10 + score.highestCombo * 100;
+
 				mode = GM_GAMEOVER;
 			}
 		}

@@ -71,7 +71,7 @@ void Board::render() {
 		// pieces
 		for (int x = 0; x < MAX_X; ++x) {
 			for (int y = 0; y < MAX_Y; ++y) {
-				if (!m_Grid.isFree(x, y)) {
+				if (m_Grid.isUsed(x, y)) {
 					MyEntry& e = m_Grid.get(x, y);
 					if (!e.hidden) {
 						_buffer->add(convertFromGrid(x, y), TEXTURE, ds::vec2(e.scale), 0.0f, _piecesColors[e.color]);
@@ -345,7 +345,7 @@ bool Board::select(Score* score) {
 			if (_numMatches > 1 ) {
 				m_Timer = 0.0f;
 				m_Mode = BM_FLASHING;
-				score->points += _numMatches * 10;
+				score->points += _numMatches * _numMatches  * 10;
 				if (_numMatches > score->highestCombo) {
 					score->highestCombo = _numMatches;
 				}
