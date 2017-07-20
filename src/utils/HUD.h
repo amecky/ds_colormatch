@@ -71,6 +71,11 @@ struct Score {
 	int piecesLeft;
 };
 
+enum TimerMode {
+	TM_INC,
+	TM_DEC
+};
+
 class HUD {
 
 public:
@@ -78,7 +83,7 @@ public:
 	~HUD();
 	void render();
 	void tick(float dt);
-	void reset();
+	void reset(TimerMode timerMode = TimerMode::TM_INC);
 	void rebuildScore(bool flash = true);
 	int getMinutes() const {
 		return _minutes.value;
@@ -98,5 +103,6 @@ private:
 	SpriteBatchBuffer* _buffer;
 	RID _textureID;
 	Score* _score;
+	TimerMode _timerMode;
 };
 

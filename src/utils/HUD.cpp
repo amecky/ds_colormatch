@@ -12,9 +12,16 @@ HUD::~HUD() {
 // ------------------------------------------------------
 // reset
 // ------------------------------------------------------
-void HUD::reset() {
-	_minutes.setValue(0);
-	_seconds.setValue(0);
+void HUD::reset(TimerMode timerMode) {
+	_timerMode = timerMode;
+	if (timerMode == TimerMode::TM_INC) {
+		_minutes.setValue(0);
+		_seconds.setValue(0);
+	}
+	else {
+		_minutes.setValue(3);
+		_seconds.setValue(0);
+	}
 	_pieces.setValue(TOTAL);
 	_timer = 0.0f;
 	_score->points = 0;
@@ -46,10 +53,19 @@ void HUD::tick(float dt) {
 	_timer += dt;
 	if (_timer > 1.0f) {
 		_timer -= 1.0f;
-		++_seconds.value;
-		if (_seconds.value >= 60) {
-			_seconds.value = 0;
-			++_minutes.value;
+		if (_timerMode == TimerMode::TM_INC) {
+			++_seconds.value;
+			if (_seconds.value >= 60) {
+				_seconds.value = 0;
+				++_minutes.value;
+			}
+		}
+		else {
+			--_seconds.value;
+			if (_seconds.value < 0) {
+				_seconds.value = 59;
+				--_minutes.value;
+			}
 		}
 	}
 	_minutes.setValue(_minutes.value, false);

@@ -255,7 +255,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 			int ret = showMainMenu(menuTimer, menuTTL);
 			if (ret == 1) {
 				board->fill(4);
-				hud.reset();
+				hud.reset(TimerMode::TM_DEC);
 				mode = GM_RUNNING;
 			}
 			else  if (ret == 2) {
