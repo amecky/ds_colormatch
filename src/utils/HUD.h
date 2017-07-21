@@ -76,10 +76,12 @@ enum TimerMode {
 	TM_DEC
 };
 
+struct GameContext;
+
 class HUD {
 
 public:
-	HUD(SpriteBatchBuffer* buffer, RID textureID, Score* score);
+	HUD(SpriteBatchBuffer* buffer, GameContext* context, Score* score);
 	~HUD();
 	void render();
 	void tick(float dt);
@@ -101,8 +103,8 @@ private:
 	Number _minutes;
 	Number _seconds;
 	SpriteBatchBuffer* _buffer;
-	RID _textureID;
 	Score* _score;
 	TimerMode _timerMode;
+	GameContext* _gameContext;
 };
 

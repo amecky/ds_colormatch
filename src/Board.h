@@ -6,7 +6,7 @@
 
 struct Score;
 struct GameSettings;
-
+struct GameContext;
 // -------------------------------------------------------
 // tile state
 // -------------------------------------------------------
@@ -90,7 +90,7 @@ enum ScaleMode {
 };
 
 public:
-	Board(SpriteBatchBuffer* buffer, GameSettings* settings);
+	Board(SpriteBatchBuffer* buffer, GameContext* context, GameSettings* settings);
 	virtual ~Board();
 	void fill(int maxColors);
 	bool select(Score* score);
@@ -127,12 +127,11 @@ private:
 	int _selectedX;
 	int _selectedY;
 	SpriteBatchBuffer* _buffer;
-	ds::Color _piecesColors[8];
 	Message _messages[2];
 	int _numMovesLeft;
 	ds::p2i _matches[TOTAL];
 	int _numMatches;
 	float _highlightTimer;
-	
+	GameContext* _gameContext;
 };
 

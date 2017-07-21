@@ -4,16 +4,31 @@
 
 namespace font {
 
-	void renderText(const ds::vec2& pos, const char* txt, SpriteBatchBuffer* buffer, RID textureID) {
+	ds::vec4 get_rect(char c) {
+		if (c == ' ') {
+			return ds::vec4(200, 260, 30, 25);
+		}
+		if (c >= 48 && c <= 57) {
+			int idx = (int)c - 48;
+			return ds::vec4(200 + idx * 38, 200, 38, 30);
+		}
+		if (c > 92) {
+			c -= 32;
+		}
+		if (c >= 65 && c <= 90) {
+			ds::vec2 fd = FONT_DEF[(int)c - 65];
+			return ds::vec4(200.0f + fd.x, 230.0f, fd.y, 25.0f);
+		}
+		return ds::vec4(200, 260, 30, 25);
+
+	}
+	void renderText(const ds::vec2& pos, const char* txt, SpriteBatchBuffer* buffer) {
 		int l = strlen(txt);
 		ds::vec2 p = pos;
 		for (int i = 0; i < l; ++i) {
-			int idx = (int)txt[i] - 32;
-			if (idx >= 0 && idx < 127) {
-				const ds::vec4& r = FONT_RECTS[idx];
-				buffer->add(p, r);
-				p.x += r.z + 6.0f;
-			}
+			const ds::vec4& r = get_rect(txt[i]);
+			buffer->add(p, r);
+			p.x += r.z + 2.0f;
 		}
 	}
 
@@ -21,13 +36,10 @@ namespace font {
 		int l = strlen(txt);
 		ds::vec2 p(0.0f);
 		for (int i = 0; i < l; ++i) {
-			int idx = (int)txt[i] - 32;
-			if (idx >= 0 && idx < 127) {
-				const ds::vec4& r = FONT_RECTS[idx];
-				p.x += r.z + 6.0f;
-				if (r.w > p.y) {
-					p.y = r.w;
-				}
+			const ds::vec4& r = get_rect(txt[i]);
+			p.x += r.z + 2.0f;
+			if (r.w > p.y) {
+				p.y = r.w;
 			}
 		}
 		return p;

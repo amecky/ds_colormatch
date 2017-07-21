@@ -4,7 +4,7 @@
 
 namespace dialog {
 
-	void init(SpriteBatchBuffer* buffer, RID textureID);
+	void init(SpriteBatchBuffer* buffer);
 
 	void begin();
 

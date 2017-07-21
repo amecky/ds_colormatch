@@ -1,6 +1,10 @@
 #pragma once
 #include <diesel.h>
 
+struct GameContext {
+	ds::Color colors[8];
+};
+
 struct GameSettings {
 	float prepareTTL;
 	float messageScale;

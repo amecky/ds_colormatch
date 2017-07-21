@@ -1,8 +1,10 @@
 #include "HUD.h"
 #include "tweening.h"
 #include "..\Constants.h"
+#include "..\GameSettings.h"
 
-HUD::HUD(SpriteBatchBuffer* buffer, RID textureID, Score* score) : _buffer(buffer) , _textureID(textureID) , _score(score) , _pieces(3), _points(6), _minutes(2), _seconds(2) {
+HUD::HUD(SpriteBatchBuffer* buffer,  GameContext* context, Score* score) 
+	: _buffer(buffer) , _gameContext(context), _score(score) , _pieces(3), _points(6), _minutes(2), _seconds(2) {
 	reset();
 }
 
@@ -109,13 +111,24 @@ void HUD::renderNumber(const Number& nr, const ds::vec2& startPos) {
 // ------------------------------------------------------
 void HUD::render() {
 	
-	ds::vec2 p(180, 30);
+	ds::vec2 p(160, 720);
+	_buffer->add(p, ds::vec4(540, 160, 260, 40));
+	p.x += 20.0f;
 	renderNumber(_points, p);
+	
+	p.y = 40.0f;
+	p.x = 490.0f;
+	_buffer->add(p, ds::vec4(540, 160, 140, 40));
 	p.x = 512.0f;
 	renderNumber(_pieces, p);
+
+	p.y = 720.0f;
+	p.x = 710.0f;
+	_buffer->add(p, ds::vec4(540, 160, 100, 40));
+	p.x = 820.0f;
+	_buffer->add(p, ds::vec4(540, 160, 100, 40));
 	p.x = 725.0f;
-	renderNumber(_minutes, p);
+	renderNumber(_minutes, p);	
 	p.x += 38.0f * 3.0f;
 	renderNumber(_seconds, p);
-	
 }

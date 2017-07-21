@@ -4,7 +4,9 @@
 
 namespace font {
 
-	void renderText(const ds::vec2& pos, const char* txt, SpriteBatchBuffer* buffer, RID textureID);
+	ds::vec4 get_rect(char c);
+
+	void renderText(const ds::vec2& pos, const char* txt, SpriteBatchBuffer* buffer);
 
 	ds::vec2 textSize(const char* txt);
 }

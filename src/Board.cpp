@@ -12,9 +12,9 @@ ds::vec2 convertFromGrid(int gx, int gy) {
 	return ds::vec2(STARTX + gx * CELL_SIZE, STARTY + gy * CELL_SIZE);
 }
 
-Board::Board(SpriteBatchBuffer* buffer, GameSettings* settings) : _buffer(buffer) , _settings(settings) {
-	_messages[0] = Message{ 0.0f, _settings->prepareTTL, 1.0f, ds::Color(255,255,255,255), ds::vec4(  420, 645, 500, 45), 0.0f, false };
-	_messages[1] = Message{ 0.0f, 0.8f, 1.0f, ds::Color(255,255,255,255), ds::vec4(100, 0,  120, 45), 0.0f, false };
+Board::Board(SpriteBatchBuffer* buffer, GameContext* context, GameSettings* settings) : _buffer(buffer) , _gameContext(context), _settings(settings) {
+	_messages[0] = Message{ 0.0f, _settings->prepareTTL, 1.0f, ds::Color(255,255,255,255), ds::vec4(  200, 440, 515, 55), 0.0f, false };
+	_messages[1] = Message{ 0.0f, 0.8f, 1.0f, ds::Color(255,255,255,255), ds::vec4(75, 5,  130, 55), 0.0f, false };
 	_numMatches = 0;
 	_numMovesLeft = 0;
 	_numDroppedCells = 0;
@@ -52,7 +52,6 @@ void Board::fill(int maxColors) {
 	_selectedY = -1;
 	_flashCount = 0;
 	_numMatches = 0;	
-	color::pick_colors(_piecesColors,8);
 	m_Grid.calculateValidMoves();
 	activateMessage(0);
 	_numDroppedCells = 0;
@@ -74,7 +73,7 @@ void Board::render() {
 				if (m_Grid.isUsed(x, y)) {
 					MyEntry& e = m_Grid.get(x, y);
 					if (!e.hidden) {
-						_buffer->add(convertFromGrid(x, y), TEXTURE, ds::vec2(e.scale), 0.0f, _piecesColors[e.color]);
+						_buffer->add(convertFromGrid(x, y), TEXTURE, ds::vec2(e.scale), 0.0f, _gameContext->colors[e.color]);
 					}
 				}
 			}
@@ -82,7 +81,7 @@ void Board::render() {
 
 		// moving cells
 		for (size_t i = 0; i < _numMoving; ++i) {
-			_buffer->add(_movingCells[i].current, TEXTURE, ds::vec2(1, 1), 0.0f, _piecesColors[_movingCells[i].color]);
+			_buffer->add(_movingCells[i].current, TEXTURE, ds::vec2(1, 1), 0.0f, _gameContext->colors[_movingCells[i].color]);
 		}
 	}
 

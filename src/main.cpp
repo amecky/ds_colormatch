@@ -21,21 +21,8 @@
 enum GameMode {
 	GM_MENU,
 	GM_RUNNING,
-	GM_GAMEOVER
-};
-
-// ---------------------------------------------------------------
-// Background settings
-// ---------------------------------------------------------------
-struct BackgroundSettings {
-	ds::Color colors[8];
-	float timer;
-	int colorIndex;
-	ds::Color startColor;
-	ds::Color endColor;
-	float ttl;
-	float minAlpha;
-	float maxAlpha;
+	GM_GAMEOVER,
+	GM_HIGHSCORES
 };
 
 // ---------------------------------------------------------------
@@ -101,6 +88,8 @@ int floatButton(float time, float ttl, FloatInDirection dir) {
 	}
 	return 512;
 }
+
+const static int LOGO_Y_POS = 600;
 // ---------------------------------------------------------------
 // show game over menu
 // ---------------------------------------------------------------
@@ -135,18 +124,47 @@ int showGameOverMenu(const Score& score, float time, float ttl) {
 int showMainMenu(float time, float ttl) {
 	int ret = 0;
 	dialog::begin();
-	int dy = 550;
+	int dy = LOGO_Y_POS;
 	if (time <= ttl) {
-		dy = tweening::interpolate(tweening::easeOutElastic, 900, 550, time, ttl);
+		dy = tweening::interpolate(tweening::easeOutElastic, 1000, LOGO_Y_POS, time, ttl);
 	}
-	dialog::Image(ds::vec2(512, dy), ds::vec4(200, 700, 760, 50));
+	dialog::Image(ds::vec2(512, dy), ds::vec4(225, 5, 770, 55));
 	dialog::Image(ds::vec2(512, 35), ds::vec4(0, 955, 530, 12));
 	int dx = floatButton(time, ttl, FloatInDirection::FID_LEFT);
-	if (dialog::Button(ds::vec2(dx, 400), ds::vec4(0, 70, 260, 60))) {
+	if (dialog::Button(ds::vec2(dx, 420), ds::vec4(0, 70, 260, 60))) {
 		ret = 1;
 	}
 	dx = floatButton(time, ttl, FloatInDirection::FID_RIGHT);
-	if (dialog::Button(ds::vec2(dx, 270), ds::vec4(270, 130, 260, 60))) {
+	if (dialog::Button(ds::vec2(dx, 290), ds::vec4(270, 70, 260, 60))) {
+		ret = 3;
+	}
+	dx = floatButton(time, ttl, FloatInDirection::FID_LEFT);
+	if (dialog::Button(ds::vec2(dx, 160), ds::vec4(270, 130, 260, 60))) {
+		ret = 2;
+	}
+	dialog::end();
+	return ret;
+}
+
+// ---------------------------------------------------------------
+// show main menu
+// ---------------------------------------------------------------
+int showHighscores(float time, float ttl) {
+	int ret = 0;
+	dialog::begin();
+	int dy = LOGO_Y_POS;
+	if (time <= ttl) {
+		dy = tweening::interpolate(tweening::easeOutElastic, 1000, LOGO_Y_POS, time, ttl);
+	}
+	dialog::Image(ds::vec2(512, dy), ds::vec4(200,560,560,55));
+	int dx = floatButton(time, ttl, FloatInDirection::FID_LEFT);
+	dialog::Image(ds::vec2(512, 500), ds::vec4(540, 160, 400, 30));
+	dialog::Text(ds::vec2(512, 500), "ZEN Modus");
+	for (int i = 0; i < 5; ++i) {
+		dialog::Image(ds::vec2(512, 450 - i * 50), ds::vec4(0, 825, 700, 36));
+		dialog::Text(ds::vec2(512, 450 - i * 50), "1. Name   606780");
+	}
+	if (dialog::Button(ds::vec2(dx, 160), ds::vec4(270, 130, 260, 60))) {
 		ret = 2;
 	}
 	dialog::end();
@@ -181,6 +199,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	SpriteBatchBufferInfo sbbInfo = { 2048, textureID, ds::TextureFilters::LINEAR };
 	SpriteBatchBuffer spriteBuffer(sbbInfo);
 
+	GameContext gameContext;
+	color::pick_colors(gameContext.colors, 8);
+
 	// prepare the game settings
 	GameSettings settings;
 	settings.flashTTL = 0.3f;
@@ -194,7 +215,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	settings.prepareTTL = 1.0f;
 	settings.messageScale = 0.8f;
 	settings.highlightTime = 5.0f;
-
+	/*
 	BackgroundSettings bgSettings;
 	color::pick_colors(bgSettings.colors,8);
 	bgSettings.colorIndex = 1;
@@ -203,12 +224,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	bgSettings.ttl = 2.0f;
 	bgSettings.startColor = bgSettings.colors[0];
 	bgSettings.endColor = bgSettings.colors[1];
-
-	Board* board = new Board(&spriteBuffer,&settings);
+	*/
+	Board* board = new Board(&spriteBuffer, &gameContext, &settings);
 
 	Score score;
 
-	HUD hud(&spriteBuffer, textureID, &score);
+	HUD hud(&spriteBuffer, &gameContext, &score);
 	hud.reset();
 
 	char txt[256];
@@ -217,7 +238,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	GameMode mode = GM_MENU;
 
-	dialog::init(&spriteBuffer, textureID);
+	dialog::init(&spriteBuffer);
 
 	int moves = 0;
 
@@ -254,6 +275,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 			menuTimer += static_cast<float>(ds::getElapsedSeconds());
 			int ret = showMainMenu(menuTimer, menuTTL);
 			if (ret == 1) {
+				color::pick_colors(gameContext.colors, 8);
 				board->fill(4);
 				hud.reset(TimerMode::TM_DEC);
 				mode = GM_RUNNING;
@@ -261,16 +283,29 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 			else  if (ret == 2) {
 				running = false;
 			}
+			else if (ret == 3) {
+				menuTimer = 0.0f;
+				mode = GM_HIGHSCORES;
+			}
 		}
 		else if (mode == GM_GAMEOVER) {
 			menuTimer += static_cast<float>(ds::getElapsedSeconds());
 			board->render();
 			int ret = showGameOverMenu(score,menuTimer,menuTTL);
 			if (ret == 1) {
+				color::pick_colors(gameContext.colors, 8);
 				board->fill(4);
 				mode = GM_RUNNING;
 			}
 			else if (ret == 2) {
+				menuTimer = 0.0f;
+				mode = GM_MENU;
+			}
+		}
+		else if (mode == GM_HIGHSCORES) {
+			menuTimer += static_cast<float>(ds::getElapsedSeconds());
+			int ret = showHighscores(menuTimer, menuTTL);
+			if (ret == 2) {
 				menuTimer = 0.0f;
 				mode = GM_MENU;
 			}
@@ -311,6 +346,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		if (mode == GM_RUNNING) {
 			hud.render();
 		}
+
+		font::renderText(ds::vec2(20, 120), "ABCDEFGHIJKLMNOPQ 0123456789", &spriteBuffer);
+		font::renderText(ds::vec2(20, 90), "RSTUVWXYZ", &spriteBuffer);
 		
 		spriteBuffer.flush();
 
@@ -341,7 +379,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 					mode = GM_GAMEOVER;
 					menuTimer = 0.0f;
 				}
+				if (gui::Button("New colors")) {
+					color::pick_colors(gameContext.colors, 8);
+				}
 			}
+			/*
 			if (backDbgPanel.active) {
 				gui::begin("Background", &backDbgPanel.state);
 				gui::Value("TTL", bgSettings.ttl);
@@ -352,6 +394,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 				//gui::Value("Current", clr);
 				gui::Value("Index", bgSettings.colorIndex);
 			}
+			*/
 			if (settingsPanel.active) {
 				gui::begin("Settings", &settingsPanel.state);
 				gui::Input("Prepare TTL", &settings.prepareTTL);

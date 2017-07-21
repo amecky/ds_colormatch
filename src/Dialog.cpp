@@ -12,7 +12,6 @@ namespace dialog {
 	};
 
 	struct GUIContext {
-		RID textureID;
 		SpriteBatchBuffer* buffer;
 		std::vector<DrawCall> calls;
 		bool clicked;
@@ -55,10 +54,9 @@ namespace dialog {
 		return false;
 	}
 
-	void init(SpriteBatchBuffer* buffer, RID textureID) {
+	void init(SpriteBatchBuffer* buffer) {
 		_guiCtx = new GUIContext;
 		_guiCtx->buffer = buffer;
-		_guiCtx->textureID = textureID;
 		_guiCtx->clicked = false;
 		_guiCtx->buttonPressed = false;
 	}
@@ -101,17 +99,12 @@ namespace dialog {
 		ds::vec2 size = font::textSize(text);
 		p.x = (1024.0f - size.x) * 0.5f;
 		for (int i = 0; i < l; ++i) {
-			int idx = (int)text[i] - 32;
-			if (idx >= 0 && idx < 127) {
-				ds::vec4 r = FONT_RECTS[idx];
-				r.r += 540.0f;
-				r.g -= 130.0f;
-				DrawCall call;
-				call.pos = p;
-				call.rect = r;
-				_guiCtx->calls.push_back(call);
-				p.x += r.z + 6.0f;
-			}
+			ds::vec4 r = font::get_rect(text[i]);
+			DrawCall call;
+			call.pos = p;
+			call.rect = r;
+			_guiCtx->calls.push_back(call);
+			p.x += r.z + 2.0f;
 		}
 	}
 
