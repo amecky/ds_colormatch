@@ -147,31 +147,6 @@ int showMainMenu(float time, float ttl) {
 }
 
 // ---------------------------------------------------------------
-// show main menu
-// ---------------------------------------------------------------
-int showHighscores(float time, float ttl) {
-	int ret = 0;
-	dialog::begin();
-	int dy = LOGO_Y_POS;
-	if (time <= ttl) {
-		dy = tweening::interpolate(tweening::easeOutElastic, 1000, LOGO_Y_POS, time, ttl);
-	}
-	dialog::Image(ds::vec2(512, dy), ds::vec4(200,560,560,55));
-	int dx = floatButton(time, ttl, FloatInDirection::FID_LEFT);
-	dialog::Image(ds::vec2(512, 500), ds::vec4(540, 160, 400, 30));
-	dialog::Text(ds::vec2(512, 500), "ZEN Modus");
-	for (int i = 0; i < 5; ++i) {
-		dialog::Image(ds::vec2(512, 450 - i * 50), ds::vec4(0, 825, 700, 36));
-		dialog::Text(ds::vec2(512, 450 - i * 50), "1. Name   606780");
-	}
-	if (dialog::Button(ds::vec2(dx, 160), ds::vec4(270, 130, 260, 60))) {
-		ret = 2;
-	}
-	dialog::end();
-	return ret;
-}
-
-// ---------------------------------------------------------------
 // handle input for debug panel
 // ---------------------------------------------------------------
 void handleDebugInput(DebugPanel* panel) {
@@ -215,6 +190,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	settings.prepareTTL = 1.0f;
 	settings.messageScale = 0.8f;
 	settings.highlightTime = 5.0f;
+	settings.logoSlideTTL = 1.6f;
 	/*
 	BackgroundSettings bgSettings;
 	color::pick_colors(bgSettings.colors,8);
@@ -252,6 +228,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	float menuTimer = 0.0f;
 	float menuTTL = 1.6f;
 
+	HighscoreDialog highscoreDialog(&settings);
+
 	while (ds::isRunning() && running) {
 
 		handleDebugInput(&boardPanel);
@@ -285,6 +263,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 			}
 			else if (ret == 3) {
 				menuTimer = 0.0f;
+				highscoreDialog.start();
 				mode = GM_HIGHSCORES;
 			}
 		}
@@ -303,8 +282,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 			}
 		}
 		else if (mode == GM_HIGHSCORES) {
-			menuTimer += static_cast<float>(ds::getElapsedSeconds());
-			int ret = showHighscores(menuTimer, menuTTL);
+			int ret = highscoreDialog.tick(static_cast<float>(ds::getElapsedSeconds()));
 			if (ret == 2) {
 				menuTimer = 0.0f;
 				mode = GM_MENU;

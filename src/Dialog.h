@@ -22,4 +22,20 @@ namespace dialog {
 
 }
 
+struct GameSettings;
 
+class HighscoreDialog {
+
+public:
+	HighscoreDialog(GameSettings* settings);
+	~HighscoreDialog();
+	void start();
+	int tick(float dt);
+private:
+	GameSettings* _settings;
+	float _timer;
+	int _mode;
+	int _offset;
+	float _offsetTimer;
+
+};

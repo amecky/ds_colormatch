@@ -3,6 +3,8 @@
 #include "Constants.h"
 #include <stdarg.h>
 #include "utils\utils.h"
+#include "utils\tweening.h"
+#include "GameSettings.h"
 
 namespace dialog {
 
@@ -134,4 +136,77 @@ namespace dialog {
 		}
 	}
 
+}
+
+enum FloatInDirection {
+	FID_LEFT,
+	FID_RIGHT
+};
+
+static int floatButton(float time, float ttl, FloatInDirection dir) {
+	if (time <= ttl) {
+		if (dir == FloatInDirection::FID_LEFT) {
+			return tweening::interpolate(tweening::easeOutElastic, -200, 512, time, ttl);
+		}
+		else {
+			return tweening::interpolate(tweening::easeOutElastic, 1020, 512, time, ttl);
+		}
+	}
+	return 512;
+}
+
+const static int LOGO_Y_POS = 600;
+
+HighscoreDialog::HighscoreDialog(GameSettings* settings) : _settings(settings) , _timer(0.0f) {
+
+}
+
+HighscoreDialog::~HighscoreDialog() {
+
+}
+
+void HighscoreDialog::start() {
+	_timer = 0.0f;
+	_mode = 0;
+	_offsetTimer = 0.0f;
+}
+
+int HighscoreDialog::tick(float dt) {
+	int ret = 0;
+	dialog::begin();
+	int dy = LOGO_Y_POS;
+	_timer += dt;
+	if (_timer <= _settings->logoSlideTTL) {
+		dy = tweening::interpolate(tweening::easeOutElastic, 1000, LOGO_Y_POS, _timer, _settings->logoSlideTTL);
+	}
+	dialog::Image(ds::vec2(512, dy), ds::vec4(200, 560, 560, 55));
+	int dx = floatButton(_timer, _settings->logoSlideTTL, FloatInDirection::FID_LEFT);
+	dialog::Image(ds::vec2(512, 500), ds::vec4(540, 160, 400, 30));
+	if (_mode == 0) {
+		dialog::Text(ds::vec2(512, 500), "ZEN Modus");
+	}
+	else {
+		dialog::Text(ds::vec2(512, 500), "Timer Modus");
+	}
+	_offsetTimer += dt;
+	if (_offsetTimer > 1.0f) {
+		_offsetTimer -= 1.0f;		
+		_offset += 5;
+		if (_offset >= 10) {
+			_offset = 0;
+			_mode = (_mode + 1) & 1;
+		}
+	}
+	char buffer[128];
+	for (int i = 0; i < 5; ++i) {
+		int idx = _offset + _mode * 10;
+		dialog::Image(ds::vec2(512, 450 - i * 50), ds::vec4(0, 825, 700, 36));
+		sprintf(buffer, "%d. Name 66800", (_offset + i + 1));
+		dialog::Text(ds::vec2(512, 450 - i * 50), buffer);
+	}
+	if (dialog::Button(ds::vec2(dx, 160), ds::vec4(270, 130, 260, 60))) {
+		ret = 2;
+	}
+	dialog::end();
+	return ret;
 }

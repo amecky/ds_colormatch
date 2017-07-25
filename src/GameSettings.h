@@ -17,4 +17,5 @@ struct GameSettings {
 	float clearMinTTL;
 	float clearMaxTTL;
 	float highlightTime;
+	float logoSlideTTL;
 };
