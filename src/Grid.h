@@ -346,13 +346,12 @@ public:
 	// Is column empty
 	// -------------------------------------------------------
 	bool isColumnEmpty(int col) const {
-		int count = 0;
 		for (int i = 0; i < m_Height; ++i) {
-			if (!isFree(col, i)) {
-				++count;
+			if (isUsed(col, i)) {
+				return false;
 			}
 		}
-		return count == 0;
+		return true;
 	}
 
 	// -------------------------------------------------------

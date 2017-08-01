@@ -377,7 +377,7 @@ void Board::debug() {
 				sprintf_s(buffer, 32, "%2d ", c.color);
 			}
 			else {
-				sprintf_s(buffer, 32, "   ");
+				sprintf_s(buffer, 32, " x ");
 			}
 			dbgTxt.append(buffer);
 		}

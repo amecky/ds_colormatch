@@ -1263,6 +1263,7 @@ namespace ds {
 		DSKEY_F10,
 		DSKEY_F11,
 		DSKEY_F12,
+		DSKEY_ESC,
 		DSKEY_UNKNOWN
 	};
 
@@ -5052,6 +5053,7 @@ namespace ds {
 			case VK_END: value = SpecialKeys::DSKEY_End; break;
 			case VK_DELETE: value = SpecialKeys::DSKEY_Delete; break;
 			case VK_RETURN: value = SpecialKeys::DSKEY_Enter; break;
+			case VK_ESCAPE: value = SpecialKeys::DSKEY_ESC; break;
 			case VK_F1: value = SpecialKeys::DSKEY_F1; break;
 			case VK_F2: value = SpecialKeys::DSKEY_F2; break;
 			case VK_F3: value = SpecialKeys::DSKEY_F3; break;
