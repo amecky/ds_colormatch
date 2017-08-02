@@ -173,7 +173,14 @@ public:
 		for (int i = 0; i < m_Width - 1; ++i) {
 			if (isColumnEmpty(i)) {
 				int end = i + 1;
-				while (isColumnEmpty(end)) {
+				bool running = true;
+				while (running) {
+					if (isColumnEmpty(end)) {
+						running = false;
+					}
+					if (end >= m_Width) {
+						running = false;
+					}
 					++end;
 				}
 				shiftColumns(i,end);
@@ -268,6 +275,16 @@ public:
 			}
 		}
 	}
+
+	int findLastUsedColumn() {
+		int ret = m_Width - 1;
+		for (int i = ret; i >= 0; --i) {
+			if (!isColumnEmpty(i)) {
+				return ret;
+			}
+		}
+		return ret;
+	}
 	// ------------------------------------------------
 	// shift columns
 	// ------------------------------------------------
@@ -277,10 +294,13 @@ public:
 			if (sx < 0) {
 				sx = 0;
 			}
-			for (int x = sx; x < m_Width - 1; ++x) {
+			log("shift columns - start %d", startColumn);
+			int end = findLastUsedColumn();
+			log("last column: %d", end);
+			for (int x = sx; x < end; ++x) {
 				copyColumn(x + 1, x);
 			}
-			clearColumn(m_Width - 1);
+			clearColumn(end);
 		}
 	}
 

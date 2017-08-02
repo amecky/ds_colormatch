@@ -353,6 +353,16 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		gui::end();
 #endif
 
+		ds::Event e;
+		char b[128];
+		while (ds::get_event(&e)) {
+			sprintf(b, "event - type: %d\n", e.type);
+			OutputDebugString(b);
+			if (e.type == ds::EventType::ET_MOUSEBUTTON_DOWN) {
+				OutputDebugString("Mouse DOWN\n");
+			}
+		}
+
 		ds::end();
 	}
 	delete board;
