@@ -6,12 +6,14 @@ namespace font {
 
 	ds::vec4 get_rect(char c) {
 		if (c == ' ') {
-			return ds::vec4(200, 260, 30, 25);
+			return ds::vec4(40, 0, 20, 25);
 		}
+		// numbers are stored at different location
 		if (c >= 48 && c <= 57) {
 			int idx = (int)c - 48;
-			return ds::vec4(200 + idx * 38, 200, 38, 30);
+			return ds::vec4(201 + idx * 30, 260, 30, 25);
 		}
+		// convert to lower case to upper case
 		if (c > 92) {
 			c -= 32;
 		}
@@ -19,25 +21,28 @@ namespace font {
 			ds::vec2 fd = FONT_DEF[(int)c - 65];
 			return ds::vec4(200.0f + fd.x, 230.0f, fd.y, 25.0f);
 		}
-		return ds::vec4(200, 260, 30, 25);
+		return ds::vec4(40, 0, 20, 25);
 
 	}
 	void renderText(const ds::vec2& pos, const char* txt, SpriteBatchBuffer* buffer) {
 		int l = strlen(txt);
 		ds::vec2 p = pos;
+		float lw = 0.0f;
 		for (int i = 0; i < l; ++i) {
 			const ds::vec4& r = get_rect(txt[i]);
+			p.x += lw * 0.5f + r.z * 0.5f;
 			buffer->add(p, r);
-			p.x += r.z + 2.0f;
+			lw = r.z;
 		}
 	}
 
 	ds::vec2 textSize(const char* txt) {
 		int l = strlen(txt);
 		ds::vec2 p(0.0f);
+		float lw = 0.0f;
 		for (int i = 0; i < l; ++i) {
 			const ds::vec4& r = get_rect(txt[i]);
-			p.x += r.z + 2.0f;
+			p.x += lw * 0.5f + r.z * 0.5f;
 			if (r.w > p.y) {
 				p.y = r.w;
 			}

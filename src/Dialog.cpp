@@ -100,13 +100,15 @@ namespace dialog {
 		ds::vec2 p = pos;
 		ds::vec2 size = font::textSize(text);
 		p.x = (1024.0f - size.x) * 0.5f;
+		float lw = 0.0f;
 		for (int i = 0; i < l; ++i) {
 			ds::vec4 r = font::get_rect(text[i]);
+			p.x += lw * 0.5f + r.z * 0.5f;
 			DrawCall call;
 			call.pos = p;
 			call.rect = r;
 			_guiCtx->calls.push_back(call);
-			p.x += r.z + 2.0f;
+			lw = r.z;
 		}
 	}
 

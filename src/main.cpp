@@ -86,16 +86,15 @@ const static int LOGO_Y_POS = 600;
 int showGameOverMenu(const Score& score, float time, float ttl) {
 	int ret = 0;
 	dialog::begin();
-	dialog::Image(ds::vec2(512, 620), ds::vec4(0, 870, 530, 45));
-	ds::vec2 mp = ds::getMousePosition();
-	dialog::Image(ds::vec2(512, 550), ds::vec4(420, 570, 500, 42));
-	dialog::FormattedText(ds::vec2(400, 550), "Pieces cleared: %d", score.itemsCleared);
-	dialog::Image(ds::vec2(512, 500), ds::vec4(420, 570, 500, 42));
-	dialog::FormattedText(ds::vec2(400, 500), "Time: %02d:%02d", score.minutes, score.seconds);
-	dialog::Image(ds::vec2(512, 450), ds::vec4(420, 570, 500, 42));
-	dialog::FormattedText(ds::vec2(400, 450), "Score: %d", score.points);
-	dialog::Image(ds::vec2(512, 400), ds::vec4(420, 570, 500, 42));
-	dialog::FormattedText(ds::vec2(400, 400), "Highest combo: %d", score.highestCombo);
+	dialog::Image(ds::vec2(512, 620), ds::vec4(200, 500, 540, 55));
+	dialog::Image(ds::vec2(512, 550), ds::vec4(540, 160, 500, 40));
+	dialog::FormattedText(ds::vec2(100, 550), "Pieces cleared: %d", score.itemsCleared);
+	dialog::Image(ds::vec2(512, 500), ds::vec4(540, 160, 500, 40));
+	dialog::FormattedText(ds::vec2(100, 500), "Time: %02d:%02d", score.minutes, score.seconds);
+	dialog::Image(ds::vec2(512, 450), ds::vec4(540, 160, 500, 40));
+	dialog::FormattedText(ds::vec2(100, 450), "Score: %d", score.points);
+	dialog::Image(ds::vec2(512, 400), ds::vec4(540, 160, 500, 40));
+	dialog::FormattedText(ds::vec2(100, 400), "Highest combo: %d", score.highestCombo);
 	int dx = floatButton(time, ttl, FloatInDirection::FID_LEFT);
 	if (dialog::Button(ds::vec2(dx, 320), ds::vec4(0, 70, 260, 60))) {
 		ret = 1;
@@ -184,7 +183,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	bool pressed = false;
 
-	GameMode mode = GM_MENU;
+	GameMode mode = GM_GAMEOVER;
 
 	dialog::init(&spriteBuffer);
 
@@ -231,7 +230,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		}
 		else if (mode == GM_GAMEOVER) {
 			menuTimer += static_cast<float>(ds::getElapsedSeconds());
-			board->render();
+			//board->render();
 			int ret = showGameOverMenu(score,menuTimer,menuTTL);
 			if (ret == 1) {
 				color::pick_colors(gameContext.colors, 8);
@@ -287,8 +286,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 			hud.render();
 		}
 
-		font::renderText(ds::vec2(20, 120), "ABCDEFGHIJKLMNOPQ 0123456789", &spriteBuffer);
-		font::renderText(ds::vec2(20, 90), "RSTUVWXYZ", &spriteBuffer);
+		//font::renderText(ds::vec2(20, 550), "ABCDEFGHIJKLMNOPQ 0123456789", &spriteBuffer);
+		//font::renderText(ds::vec2(20, 90), "RSTUVWXYZ", &spriteBuffer);
 		
 		spriteBuffer.flush();
 
@@ -358,8 +357,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		while (ds::get_event(&e)) {
 			sprintf(b, "event - type: %d\n", e.type);
 			OutputDebugString(b);
-			if (e.type == ds::EventType::ET_MOUSEBUTTON_DOWN) {
-				OutputDebugString("Mouse DOWN\n");
+			if (e.type == ds::EventType::ET_MOUSEBUTTON_PRESSED) {
+				sprintf(b, "Button %d pressed\n", e.mouse.button);
+				OutputDebugString(b);
 			}
 		}
 

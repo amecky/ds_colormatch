@@ -1331,7 +1331,7 @@ namespace ds {
 
 	void addInputCharacter(char c);
 
-	void addVirtualKey(uint32_t keyCode);
+	bool addVirtualKey(uint32_t keyCode);
 
 	int getNumInputKeys();
 
@@ -2847,33 +2847,28 @@ namespace ds {
 				ds::addInputCharacter(ascii);
 				Event keyPressedEvent;
 				keyPressedEvent.type = ET_KEY_PRESSED;
-				keyPressedEvent.key.keyType = IKT_ASCII;
-				keyPressedEvent.key.specialKey = DSKEY_UNKNOWN;
-				keyPressedEvent.key.key = ascii;
+				keyPressedEvent.key = { IKT_ASCII, (uint8_t)ascii, DSKEY_UNKNOWN };
 				push_event(keyPressedEvent);
 				return 0;
 			}
 			case WM_KEYDOWN: {
 				char ascii = wParam;
-				ds::addVirtualKey(wParam);
-				if (_ctx->keyState[ascii] != 80) {
-					Event keyDownEvent;
-					keyDownEvent.type = ET_KEY_DOWN;
-					keyDownEvent.key.keyType = IKT_ASCII;
-					keyDownEvent.key.specialKey = DSKEY_UNKNOWN;
-					keyDownEvent.key.key = ascii;
-					push_event(keyDownEvent);
+				if (!ds::addVirtualKey(wParam)) {
+					if (_ctx->keyState[ascii] != 80) {
+						Event keyDownEvent;
+						keyDownEvent.type = ET_KEY_DOWN;
+						keyDownEvent.key = { IKT_ASCII, (uint8_t)ascii, DSKEY_UNKNOWN };
+						push_event(keyDownEvent);
+					}
+					_ctx->keyState[ascii] = 80;
 				}
-				_ctx->keyState[ascii] = 80;
 				return 0;
 			}
 			case WM_KEYUP: {
 				UINT ascii = MapVirtualKey(wParam, MAPVK_VK_TO_CHAR);
 				Event keyUpEvent;
 				keyUpEvent.type = ET_KEY_UP;
-				keyUpEvent.key.keyType = IKT_ASCII;
-				keyUpEvent.key.specialKey = DSKEY_UNKNOWN;
-				keyUpEvent.key.key = ascii;
+				keyUpEvent.key = { IKT_ASCII, (uint8_t)ascii, DSKEY_UNKNOWN };
 				push_event(keyUpEvent);
 				_ctx->keyState[ascii] = 0;
 				return 0;
@@ -2882,8 +2877,7 @@ namespace ds {
 				if (_ctx->mouseButtonState[0] != 80) {
 					Event lmButtonDownEvent;
 					lmButtonDownEvent.type = ET_MOUSEBUTTON_DOWN;
-					lmButtonDownEvent.mouse.button = 0;
-					lmButtonDownEvent.mouse.state = ButtonState::PRESSED;
+					lmButtonDownEvent.mouse = { 0, ButtonState::PRESSED };
 					push_event(lmButtonDownEvent);
 				}
 				_ctx->mouseButtonState[0] = 80;
@@ -2892,13 +2886,11 @@ namespace ds {
 				if (_ctx->mouseButtonState[0] != 0) {
 					Event lmButtonUpEvent;
 					lmButtonUpEvent.type = ET_MOUSEBUTTON_UP;
-					lmButtonUpEvent.mouse.button = 0;
-					lmButtonUpEvent.mouse.state = ButtonState::RELEASED;
+					lmButtonUpEvent.mouse = { 0, ButtonState::RELEASED };
 					push_event(lmButtonUpEvent);
 					Event ne;
 					ne.type = ET_MOUSEBUTTON_PRESSED;
-					ne.mouse.button = 0;
-					ne.mouse.state = ButtonState::RELEASED;
+					ne.mouse = { 0, ButtonState::RELEASED };
 					push_event(ne);
 				}
 				_ctx->mouseButtonState[0] = 0;
@@ -2908,8 +2900,7 @@ namespace ds {
 				if (_ctx->mouseButtonState[1] != 80) {
 					Event rmButtonUpEvent;
 					rmButtonUpEvent.type = ET_MOUSEBUTTON_DOWN;
-					rmButtonUpEvent.mouse.button = 1;
-					rmButtonUpEvent.mouse.state = ButtonState::PRESSED;
+					rmButtonUpEvent.mouse = { 1, ButtonState::PRESSED };
 					push_event(rmButtonUpEvent);					
 				}
 				_ctx->mouseButtonState[1] = 80;
@@ -2918,13 +2909,11 @@ namespace ds {
 				if (_ctx->mouseButtonState[1] != 0) {
 					Event rmButtonUpEvent;
 					rmButtonUpEvent.type = ET_MOUSEBUTTON_UP;
-					rmButtonUpEvent.mouse.button = 1;
-					rmButtonUpEvent.mouse.state = ButtonState::RELEASED;
+					rmButtonUpEvent.mouse = { 1, ButtonState::RELEASED };
 					push_event(rmButtonUpEvent);
 					Event ne;
 					ne.type = ET_MOUSEBUTTON_PRESSED;
-					ne.mouse.button = 1;
-					ne.mouse.state = ButtonState::RELEASED;
+					ne.mouse = { 1, ButtonState::RELEASED };
 					push_event(ne);
 				}
 				_ctx->mouseButtonState[1] = 0;
@@ -5158,7 +5147,7 @@ namespace ds {
 		}
 	}
 
-	void addVirtualKey(uint32_t keyCode) {
+	bool addVirtualKey(uint32_t keyCode) {
 		SpecialKeys value = SpecialKeys::DSKEY_UNKNOWN;
 		switch (keyCode) {
 			case VK_TAB: value = SpecialKeys::DSKEY_Tab; break;
@@ -5190,11 +5179,13 @@ namespace ds {
 			k.type = IKT_SYSTEM;
 			k.value = value;
 
-			
+			Event keyDownEvent;
+			keyDownEvent.type = ET_KEY_DOWN;
+			keyDownEvent.key = { IKT_SYSTEM, 0, value};
+			push_event(keyDownEvent);
+			return true;
 		}
-		//else {
-			//printf("unknown: %d\n", keyCode);
-		//}
+		return false;		
 	}
 
 	int getNumInputKeys() {
