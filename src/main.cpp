@@ -62,79 +62,6 @@ void initialize() {
 	ds::init(rs);
 }
 
-enum FloatInDirection {
-	FID_LEFT,
-	FID_RIGHT
-};
-
-int floatButton(float time, float ttl, FloatInDirection dir) {
-	if (time <= ttl) {
-		if (dir == FloatInDirection::FID_LEFT) {
-			return tweening::interpolate(tweening::easeOutElastic, -200, 512, time, ttl);
-		}
-		else {
-			return tweening::interpolate(tweening::easeOutElastic, 1020, 512, time, ttl);
-		}
-	}
-	return 512;
-}
-
-const static int LOGO_Y_POS = 600;
-// ---------------------------------------------------------------
-// show game over menu
-// ---------------------------------------------------------------
-int showGameOverMenu(const Score& score, float time, float ttl) {
-	int ret = 0;
-	dialog::begin();
-	dialog::Image(ds::vec2(512, 620), ds::vec4(200, 500, 540, 55));
-	dialog::Image(ds::vec2(512, 550), ds::vec4(540, 160, 500, 40));
-	dialog::FormattedText(ds::vec2(100, 550), "Pieces cleared: %d", score.itemsCleared);
-	dialog::Image(ds::vec2(512, 500), ds::vec4(540, 160, 500, 40));
-	dialog::FormattedText(ds::vec2(100, 500), "Time: %02d:%02d", score.minutes, score.seconds);
-	dialog::Image(ds::vec2(512, 450), ds::vec4(540, 160, 500, 40));
-	dialog::FormattedText(ds::vec2(100, 450), "Score: %d", score.points);
-	dialog::Image(ds::vec2(512, 400), ds::vec4(540, 160, 500, 40));
-	dialog::FormattedText(ds::vec2(100, 400), "Highest combo: %d", score.highestCombo);
-	int dx = floatButton(time, ttl, FloatInDirection::FID_LEFT);
-	if (dialog::Button(ds::vec2(dx, 320), ds::vec4(0, 70, 260, 60))) {
-		ret = 1;
-	}
-	dx = floatButton(time, ttl, FloatInDirection::FID_RIGHT);
-	if (dialog::Button(ds::vec2(dx, 230), ds::vec4(270, 130, 260, 60))) {
-		ret = 2;
-	}
-	dialog::end();
-	return ret;
-}
-
-// ---------------------------------------------------------------
-// show main menu
-// ---------------------------------------------------------------
-int showMainMenu(float time, float ttl) {
-	int ret = 0;
-	dialog::begin();
-	int dy = LOGO_Y_POS;
-	if (time <= ttl) {
-		dy = tweening::interpolate(tweening::easeOutElastic, 1000, LOGO_Y_POS, time, ttl);
-	}
-	dialog::Image(ds::vec2(512, dy), ds::vec4(225, 5, 770, 55));
-	dialog::Image(ds::vec2(512, 35), ds::vec4(0, 955, 530, 12));
-	int dx = floatButton(time, ttl, FloatInDirection::FID_LEFT);
-	if (dialog::Button(ds::vec2(dx, 420), ds::vec4(0, 70, 260, 60))) {
-		ret = 1;
-	}
-	dx = floatButton(time, ttl, FloatInDirection::FID_RIGHT);
-	if (dialog::Button(ds::vec2(dx, 290), ds::vec4(270, 70, 260, 60))) {
-		ret = 3;
-	}
-	dx = floatButton(time, ttl, FloatInDirection::FID_LEFT);
-	if (dialog::Button(ds::vec2(dx, 160), ds::vec4(270, 130, 260, 60))) {
-		ret = 2;
-	}
-	dialog::end();
-	return ret;
-}
-
 // ---------------------------------------------------------------
 // main method
 // ---------------------------------------------------------------
@@ -194,6 +121,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	float menuTimer = 0.0f;
 	float menuTTL = 1.6f;
 
+	bool showDialog = true;
+
 	HighscoreDialog highscoreDialog(&settings);
 
 	while (ds::isRunning() && running) {
@@ -230,7 +159,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		}
 		else if (mode == GM_GAMEOVER) {
 			menuTimer += static_cast<float>(ds::getElapsedSeconds());
-			//board->render();
+			board->render();
 			int ret = showGameOverMenu(score,menuTimer,menuTTL);
 			if (ret == 1) {
 				color::pick_colors(gameContext.colors, 8);
@@ -292,76 +221,91 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		spriteBuffer.flush();
 
 #ifdef DEBUG
-		gui::start();
-		p2i sp = p2i(10, 760);
-		if (gui::begin("Debug", &dialogsStates[0],&sp,540)) {
-			gui::Value("FPS", ds::getFramesPerSecond());
-			int cx = -1;
-			int cy = -1;
-			input::convertMouse2Grid(&cx, &cy);
-			gui::Value("MPG", ds::vec2(cx, cy));
-			gui::Value("Moves", moves);
-			if (mode == GM_RUNNING) {
-				if (gui::Button("Hightlight")) {
-					board->highlightBlock();
-				}
-				if (gui::Button("Move")) {
-					board->move();
-				}
-			}
-			gui::Input("Button ttl", &menuTTL);
-			if (gui::Button("Reset timer")) {
-				menuTimer = 0.0f;
-			}
-			if (gui::Button("Game Over")) {
-				board->clearBoard();
-				mode = GM_GAMEOVER;
-				menuTimer = 0.0f;
-			}
-			if (gui::Button("New colors")) {
-				color::pick_colors(gameContext.colors, 8);
-			}
-			gui::debug();
-		}
-		if (gui::begin("Settings", &dialogsStates[1], 540)) {
-			gui::Input("Prepare TTL", &settings.prepareTTL);
-			gui::Input("Message scale", &settings.messageScale);
-			gui::Input("Min SU TTL", &settings.scaleUpMinTTL);
-			gui::Input("Max SU TTL", &settings.scaleUpMaxTTL);
-			gui::Input("Flash TTL", &settings.flashTTL);
-			gui::Input("Dropping TTL", &settings.droppingTTL);
-			gui::Input("Wiggle TTL", &settings.wiggleTTL);
-			gui::Input("Wiggle Scale", &settings.wiggleScale);
-			gui::Input("Min Clear TTL", &settings.clearMinTTL);
-			gui::Input("Max Clear TTL", &settings.clearMaxTTL);
-			gui::Input("Highlight Time", &settings.highlightTime);
-			if (gui::Button("Restart")) {
+		if (showDialog) {
+			gui::start();
+			p2i sp = p2i(10, 760);
+			if (gui::begin("Debug", &dialogsStates[0], &sp, 540)) {
+				gui::Value("FPS", ds::getFramesPerSecond());
+				int cx = -1;
+				int cy = -1;
+				input::convertMouse2Grid(&cx, &cy);
+				gui::Value("MPG", ds::vec2(cx, cy));
+				gui::Value("Moves", moves);
 				if (mode == GM_RUNNING) {
-					board->fill(4);
+					if (gui::Button("Hightlight")) {
+						board->highlightBlock();
+					}
+					if (gui::Button("Move")) {
+						board->move();
+					}
 				}
-			}
-			if (gui::Button("Clear")) {
-				if (mode == GM_RUNNING) {
+				gui::Input("Button ttl", &menuTTL);
+				if (gui::Button("Reset timer")) {
+					menuTimer = 0.0f;
+				}
+				if (gui::Button("Game Over")) {
 					board->clearBoard();
+					mode = GM_GAMEOVER;
+					menuTimer = 0.0f;
+				}
+				if (gui::Button("New colors")) {
+					color::pick_colors(gameContext.colors, 8);
+				}
+				gui::debug();
+			}
+			if (gui::begin("Settings", &dialogsStates[1], 540)) {
+				gui::Input("Prepare TTL", &settings.prepareTTL);
+				gui::Input("Message scale", &settings.messageScale);
+				gui::Input("Min SU TTL", &settings.scaleUpMinTTL);
+				gui::Input("Max SU TTL", &settings.scaleUpMaxTTL);
+				gui::Input("Flash TTL", &settings.flashTTL);
+				gui::Input("Dropping TTL", &settings.droppingTTL);
+				gui::Input("Wiggle TTL", &settings.wiggleTTL);
+				gui::Input("Wiggle Scale", &settings.wiggleScale);
+				gui::Input("Min Clear TTL", &settings.clearMinTTL);
+				gui::Input("Max Clear TTL", &settings.clearMaxTTL);
+				gui::Input("Highlight Time", &settings.highlightTime);
+				if (gui::Button("Restart")) {
+					if (mode == GM_RUNNING) {
+						board->fill(4);
+					}
+				}
+				if (gui::Button("Clear")) {
+					if (mode == GM_RUNNING) {
+						board->clearBoard();
+					}
 				}
 			}
+			if (gui::begin("Board", &dialogsStates[2], 540)) {
+				board->debug();
+			}
+			gui::end();
 		}
-		if (gui::begin("Board", &dialogsStates[2], 540)) {
-			board->debug();
-		}
-		gui::end();
-#endif
 
 		ds::Event e;
 		char b[128];
 		while (ds::get_event(&e)) {
 			sprintf(b, "event - type: %d\n", e.type);
 			OutputDebugString(b);
+			if (e.type == ds::EventType::ET_KEY_PRESSED) {
+				if (e.key.keyType == ds::IKT_ASCII && e.key.key == 'd') {
+					showDialog = !showDialog;
+				}
+				else if (e.key.keyType == ds::IKT_ASCII && e.key.key == 'e') {
+					board->clearBoard();
+					score.minutes = hud.getMinutes();
+					score.seconds = hud.getSeconds();
+					menuTimer = 0.0f;
+					score.points = score.points - score.piecesLeft * 10 + score.highestCombo * 100;
+					mode = GM_GAMEOVER;
+				}
+			}
 			if (e.type == ds::EventType::ET_MOUSEBUTTON_PRESSED) {
 				sprintf(b, "Button %d pressed\n", e.mouse.button);
 				OutputDebugString(b);
 			}
 		}
+#endif
 
 		ds::end();
 	}

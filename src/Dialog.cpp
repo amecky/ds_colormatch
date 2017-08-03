@@ -5,6 +5,7 @@
 #include "utils\utils.h"
 #include "utils\tweening.h"
 #include "GameSettings.h"
+#include "utils\HUD.h"
 
 namespace dialog {
 
@@ -95,11 +96,13 @@ namespace dialog {
 		_guiCtx->calls.push_back(call);
 	}
 
-	void Text(const ds::vec2& pos, const char* text) {
+	void Text(const ds::vec2& pos, const char* text, bool centered) {
 		int l = strlen(text);
 		ds::vec2 p = pos;
 		ds::vec2 size = font::textSize(text);
-		p.x = (1024.0f - size.x) * 0.5f;
+		if (centered) {
+			p.x = (1024.0f - size.x) * 0.5f;
+		}
 		float lw = 0.0f;
 		for (int i = 0; i < l; ++i) {
 			ds::vec4 r = font::get_rect(text[i]);
@@ -112,15 +115,17 @@ namespace dialog {
 		}
 	}
 
-	void FormattedText(const ds::vec2& pos, const char* fmt, ...) {
+	void FormattedText(const ds::vec2& pos, bool centered, const char* fmt, ...) {
 		char buffer[1024];
 		va_list args;
 		va_start(args, fmt);
 		vsprintf(buffer, fmt, args);
 		ds::vec2 size = font::textSize(buffer);
 		ds::vec2 p = pos;
-		p.x = (1024.0f - size.x) * 0.5f;
-		Text(p, buffer);
+		if (centered) {
+			p.x = (1024.0f - size.x) * 0.5f;
+		}
+		Text(p, buffer, centered);
 		va_end(args);
 		
 	}
@@ -212,3 +217,70 @@ int HighscoreDialog::tick(float dt) {
 	dialog::end();
 	return ret;
 }
+
+static const char* GAME_OVER_LABELS[] = { "Pieces cleared", "Time", "Highest combo", "Total Score" };
+// ---------------------------------------------------------------
+// show game over menu
+// ---------------------------------------------------------------
+int showGameOverMenu(const Score& score, float time, float ttl) {
+	int ret = 0;
+	dialog::begin();
+	int dy = LOGO_Y_POS;
+	if (time <= ttl) {
+		dy = tweening::interpolate(tweening::easeOutElastic, 1000, LOGO_Y_POS, time, ttl);
+	}
+	dialog::Image(ds::vec2(512, dy), ds::vec4(200, 500, 540, 55));
+
+	int y = 540;
+	int x = 150;
+	for (int i = 0; i < 4; ++i) {
+		dialog::Image(ds::vec2(x + 200, y - i * 60), ds::vec4(540, 160, 450, 40));
+		dialog::Image(ds::vec2(x + 550, y - i * 60), ds::vec4(540, 160, 200, 40));
+		dialog::Text(ds::vec2(x, y - i * 60), GAME_OVER_LABELS[i], false);
+	}
+
+	dialog::FormattedText(ds::vec2(x + 540, y), false, "%d", score.itemsCleared);
+	dialog::FormattedText(ds::vec2(x + 480, y - 60), false, "%02d %02d", score.minutes, score.seconds);
+	dialog::FormattedText(ds::vec2(x + 540, y - 120), false, "%d", score.highestCombo);
+	dialog::FormattedText(ds::vec2(x + 460, y - 180), false, "%06d", score.points);
+
+	int dx = floatButton(time, ttl, FloatInDirection::FID_LEFT);
+	if (dialog::Button(ds::vec2(dx, 260), ds::vec4(0, 70, 260, 60))) {
+		ret = 1;
+	}
+	dx = floatButton(time, ttl, FloatInDirection::FID_RIGHT);
+	if (dialog::Button(ds::vec2(dx, 170), ds::vec4(270, 130, 260, 60))) {
+		ret = 2;
+	}
+	dialog::end();
+	return ret;
+}
+
+// ---------------------------------------------------------------
+// show main menu
+// ---------------------------------------------------------------
+int showMainMenu(float time, float ttl) {
+	int ret = 0;
+	dialog::begin();
+	int dy = LOGO_Y_POS;
+	if (time <= ttl) {
+		dy = tweening::interpolate(tweening::easeOutElastic, 1000, LOGO_Y_POS, time, ttl);
+	}
+	dialog::Image(ds::vec2(512, dy), ds::vec4(225, 5, 770, 55));
+	dialog::Image(ds::vec2(512, 35), ds::vec4(0, 955, 530, 12));
+	int dx = floatButton(time, ttl, FloatInDirection::FID_LEFT);
+	if (dialog::Button(ds::vec2(dx, 420), ds::vec4(0, 70, 260, 60))) {
+		ret = 1;
+	}
+	dx = floatButton(time, ttl, FloatInDirection::FID_RIGHT);
+	if (dialog::Button(ds::vec2(dx, 290), ds::vec4(270, 70, 260, 60))) {
+		ret = 3;
+	}
+	dx = floatButton(time, ttl, FloatInDirection::FID_LEFT);
+	if (dialog::Button(ds::vec2(dx, 160), ds::vec4(270, 130, 260, 60))) {
+		ret = 2;
+	}
+	dialog::end();
+	return ret;
+}
+

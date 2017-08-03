@@ -12,15 +12,22 @@ namespace dialog {
 
 	bool Button(const ds::vec2& pos, const ds::vec4& rect);
 
-	void Text(const ds::vec2& pos, const char* text);
+	void Text(const ds::vec2& pos, const char* text, bool centered = true);
 
-	void FormattedText(const ds::vec2& pos, const char* fmt, ...);
+	void FormattedText(const ds::vec2& pos, bool centered, const char* fmt, ...);
 
 	void end();
 
 	void shutdown();
 
 }
+
+struct Score;
+
+int showGameOverMenu(const Score& score, float time, float ttl);
+
+int showMainMenu(float time, float ttl);
+
 
 struct GameSettings;
 
