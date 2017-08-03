@@ -39,10 +39,9 @@ namespace font {
 	ds::vec2 textSize(const char* txt) {
 		int l = strlen(txt);
 		ds::vec2 p(0.0f);
-		float lw = 0.0f;
 		for (int i = 0; i < l; ++i) {
 			const ds::vec4& r = get_rect(txt[i]);
-			p.x += lw * 0.5f + r.z * 0.5f;
+			p.x += r.z;
 			if (r.w > p.y) {
 				p.y = r.w;
 			}
