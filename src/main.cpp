@@ -215,7 +215,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 			hud.render();
 		}
 
-		//font::renderText(ds::vec2(20, 550), "ABCDEFGHIJKLMNOPQ 0123456789", &spriteBuffer);
+		//font::renderText(ds::vec2(20, 550), "Hello World", &spriteBuffer);
 		//font::renderText(ds::vec2(20, 90), "RSTUVWXYZ", &spriteBuffer);
 		
 		spriteBuffer.flush();

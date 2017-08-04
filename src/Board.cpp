@@ -20,6 +20,7 @@ Board::Board(SpriteBatchBuffer* buffer, GameContext* context, GameSettings* sett
 	_numDroppedCells = 0;
 	_numMoving = 0;
 	_highlightTimer = 0.0f;
+	m_Mode = BM_IDLE;
 }
 
 Board::~Board(void) {}
@@ -58,7 +59,6 @@ void Board::fill(int maxColors) {
 	_numMovesLeft = m_Grid.getNumberOfMoves();
 	_numMoving = 0;
 	_highlightTimer = 0.0f;
-	//_cellCounter = TOTAL;
 }
 
 // -------------------------------------------------------
@@ -181,7 +181,7 @@ void Board::update(float elapsed) {
 			_numDroppedCells = m_Grid.dropCells(_droppedCells,TOTAL);
 			for (size_t i = 0; i < _numDroppedCells; ++i) {
 				const ds::DroppedCell<MyEntry>& dc = _droppedCells[i];
-				ds::vec2 to = dc.to;
+				ds::p2i to = dc.to;
 				MyEntry& e = m_Grid.get(to.x, to.y);
 				e.hidden = true;
 				MovingCell m;
@@ -196,10 +196,6 @@ void Board::update(float elapsed) {
 				m_Mode = BM_MOVING;
 				m_Timer = 0.0f;
 			}			
-			else {
-				m_Grid.fillGaps();
-				m_Grid.calculateValidMoves();				
-			}
 		}
 		
 	}
@@ -214,8 +210,6 @@ void Board::update(float elapsed) {
 				e.hidden = false;
 			}
 			_numMoving = 0;
-			m_Grid.fillGaps();
-			m_Grid.calculateValidMoves();			
 		}
 		else {
 			if (m_Timer < _settings->droppingTTL) {

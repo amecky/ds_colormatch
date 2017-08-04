@@ -112,21 +112,17 @@ void HUD::renderNumber(const Number& nr, const ds::vec2& startPos) {
 void HUD::render() {
 	
 	ds::vec2 p(160, 720);
-	_buffer->add(p, ds::vec4(540, 160, 260, 40));
 	p.x += 20.0f;
 	renderNumber(_points, p);
 	
 	p.y = 40.0f;
 	p.x = 490.0f;
-	_buffer->add(p, ds::vec4(540, 160, 140, 40));
 	p.x = 512.0f;
 	renderNumber(_pieces, p);
 
 	p.y = 720.0f;
 	p.x = 710.0f;
-	_buffer->add(p, ds::vec4(540, 160, 100, 40));
 	p.x = 820.0f;
-	_buffer->add(p, ds::vec4(540, 160, 100, 40));
 	p.x = 725.0f;
 	renderNumber(_minutes, p);	
 	p.x += 38.0f * 3.0f;

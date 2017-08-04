@@ -6,7 +6,7 @@ namespace font {
 
 	ds::vec4 get_rect(char c);
 
-	void renderText(const ds::vec2& pos, const char* txt, SpriteBatchBuffer* buffer);
+	void renderText(const ds::vec2& pos, const char* txt, SpriteBatchBuffer* buffer, float scale = 1.0f);
 
 	ds::vec2 textSize(const char* txt);
 }

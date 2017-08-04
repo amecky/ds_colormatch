@@ -24,15 +24,15 @@ namespace font {
 		return ds::vec4(40, 0, 20, 25);
 
 	}
-	void renderText(const ds::vec2& pos, const char* txt, SpriteBatchBuffer* buffer) {
+	void renderText(const ds::vec2& pos, const char* txt, SpriteBatchBuffer* buffer, float scale) {
 		int l = strlen(txt);
 		ds::vec2 p = pos;
 		float lw = 0.0f;
 		for (int i = 0; i < l; ++i) {
 			const ds::vec4& r = get_rect(txt[i]);
-			p.x += lw * 0.5f + r.z * 0.5f;
-			buffer->add(p, r);
-			lw = r.z;
+			p.x += lw * 0.5f + r.z * 0.5f * scale;
+			buffer->add(p, r, ds::vec2(scale,scale));
+			lw = r.z * scale;
 		}
 	}
 
