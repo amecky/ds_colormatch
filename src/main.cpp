@@ -224,7 +224,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		if (showDialog) {
 			gui::start();
 			p2i sp = p2i(10, 760);
-			if (gui::begin("Debug", &dialogsStates[0], &sp, 540)) {
+			if (gui::begin("Debug", &dialogsStates[0], &sp, 300)) {
 				gui::Value("FPS", ds::getFramesPerSecond());
 				int cx = -1;
 				int cy = -1;
@@ -253,7 +253,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 				}
 				gui::debug();
 			}
-			if (gui::begin("Settings", &dialogsStates[1], 540)) {
+			if (gui::begin("Settings", &dialogsStates[1], 300)) {
 				gui::Input("Prepare TTL", &settings.prepareTTL);
 				gui::Input("Message scale", &settings.messageScale);
 				gui::Input("Min SU TTL", &settings.scaleUpMinTTL);
@@ -276,7 +276,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 					}
 				}
 			}
-			if (gui::begin("Board", &dialogsStates[2], 540)) {
+			if (gui::begin("Board", &dialogsStates[2], 300)) {
 				board->debug();
 			}
 			gui::end();

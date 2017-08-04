@@ -360,21 +360,29 @@ bool Board::select(Score* score) {
 }
 
 void Board::debug() {
-	std::string dbgTxt;
-	char buffer[32];
+	p2i start = gui::getCurrentPosition();
+	p2i p = start;
+	//std::string dbgTxt;
+	//char buffer[32];
 	for (int y = m_Grid.height() - 1; y >= 0; --y) {
-		dbgTxt.clear();
+		//dbgTxt.clear();
 		for (int x = 0; x < m_Grid.width(); ++x) {
 			ds::p2i gp(x, y);
 			if (m_Grid.isUsed(x, y)) {
 				const MyEntry& c = m_Grid.get(gp.x, gp.y);			
-				sprintf_s(buffer, 32, "%2d ", c.color);
+				gui::draw_box(p, p2i(6, 6), _gameContext->colors[c.color]);
+				//sprintf_s(buffer, 32, "%2d ", c.color);
 			}
 			else {
-				sprintf_s(buffer, 32, " x ");
+				gui::draw_box(p, p2i(6, 6), ds::Color(255, 255, 255, 255));
+				//sprintf_s(buffer, 32, " x ");
 			}
-			dbgTxt.append(buffer);
+			//dbgTxt.append(buffer);
+			p.x += 10;
 		}
-		gui::FormattedText("%2d: %s", y, dbgTxt.c_str());
+		p.x = start.x;
+		p.y -= 10;
+		//gui::FormattedText("%2d: %s", y, dbgTxt.c_str());
 	}
+	gui::moveForward(p2i(200, 150));
 }

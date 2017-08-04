@@ -54,11 +54,11 @@ namespace ds {
 	public:
 		Grid(int width, int height) : _width(width), _height(height) {
 			_size = width * height;
-			m_Data = new GridNode[_size];
+			_data = new GridNode[_size];
 			for (int x = 0; x < width; ++x) {
 				for (int y = 0; y < height; ++y) {
 					int index = getIndex(x, y);
-					GridNode* node = &m_Data[index];
+					GridNode* node = &_data[index];
 					node->v = p2i(x, y);
 					node->used = false;
 				}
@@ -73,7 +73,7 @@ namespace ds {
 
 		virtual ~Grid() {
 			delete[] _helper;
-			delete[] m_Data;
+			delete[] _data;
 			delete[] _used;
 		}
 
@@ -82,7 +82,7 @@ namespace ds {
 		// ------------------------------------------------
 		void clear() {
 			for (int i = 0; i < _size; ++i) {
-				m_Data[i].used = false;
+				_data[i].used = false;
 			}
 			_lastColumn = 0;
 			_startColumn = 0;
@@ -93,8 +93,8 @@ namespace ds {
 		// ------------------------------------------------
 		void clear(const T& t) {
 			for (int i = 0; i < _size; ++i) {
-				m_Data[i].data = t;
-				m_Data[i].used = true;
+				_data[i].data = t;
+				_data[i].used = true;
 			}
 			_lastColumn = 0;
 			_startColumn = 0;
@@ -106,7 +106,7 @@ namespace ds {
 		// ------------------------------------------------
 		const T& get(int x, int y) const {
 			int idx = getIndex(x, y);
-			return m_Data[idx].data;
+			return _data[idx].data;
 		}
 
 		// ------------------------------------------------
@@ -114,7 +114,7 @@ namespace ds {
 		// ------------------------------------------------
 		T& get(const p2i& p) {
 			int idx = getIndex(p);
-			return m_Data[idx].data;
+			return _data[idx].data;
 		}
 
 		// ------------------------------------------------
@@ -122,7 +122,7 @@ namespace ds {
 		// ------------------------------------------------
 		const T& get(const p2i& p) const {
 			int idx = getIndex(p);
-			return m_Data[idx].data;
+			return _data[idx].data;
 		}
 
 		// ------------------------------------------------
@@ -130,7 +130,7 @@ namespace ds {
 		// ------------------------------------------------
 		T& get(int x, int y) {
 			int idx = getIndex(x, y);
-			return m_Data[idx].data;
+			return _data[idx].data;
 		}
 		// ------------------------------------------------
 		//
@@ -138,7 +138,7 @@ namespace ds {
 		void set(int x, int y, const T& t) {
 			int idx = getIndex(x, y);
 			if (idx != -1) {
-				GridNode* node = &m_Data[idx];
+				GridNode* node = &_data[idx];
 				node->data = t;
 				node->used = true;
 				if (x < _startColumn) {
@@ -152,8 +152,8 @@ namespace ds {
 		// ------------------------------------------------
 		bool remove(int x, int y) {
 			int idx = getIndex(x, y);
-			if (idx != -1 && m_Data[idx].used) {
-				m_Data[idx].used = false;
+			if (idx != -1 && _data[idx].used) {
+				_data[idx].used = false;
 				return true;
 				// FIXME: if column is empty set start and last column
 			}
@@ -170,7 +170,7 @@ namespace ds {
 					shiftColumns(i + 1, 0);
 				}
 			}
-			for (int i = 0; i < center; ++i) {
+			for (int i = _startColumn; i < center; ++i) {
 				if (isColumnEmpty(i)) {
 					shiftColumns(i, 1);
 				}
@@ -210,7 +210,7 @@ namespace ds {
 		bool isUsed(int x, int y) const {
 			int idx = getIndex(x, y);
 			if (idx != -1) {
-				return m_Data[idx].used;
+				return _data[idx].used;
 			}
 			return false;
 		}
@@ -234,8 +234,8 @@ namespace ds {
 				for (int x = 0; x < _width; ++x) {
 					int idx = getIndex(x, row);
 					if (idx != -1) {
-						m_Data[idx].data = t;
-						m_Data[idx].used = true;
+						_data[idx].data = t;
+						_data[idx].used = true;
 					}
 				}
 				_startColumn = 0;
@@ -250,7 +250,7 @@ namespace ds {
 			for (int x = 0; x < _width; ++x) {
 				int oldIndex = getIndex(x, oldRow);
 				int newIndex = getIndex(x, newRow);
-				m_Data[newIndex] = m_Data[oldIndex];
+				_data[newIndex] = _data[oldIndex];
 			}
 		}
 
@@ -261,12 +261,12 @@ namespace ds {
 			for (int y = 0; y < _height; ++y) {
 				int oldIndex = getIndex(oldColumn, y);
 				int newIndex = getIndex(newColumn, y);
-				if (m_Data[oldIndex].used) {
-					m_Data[newIndex].data = m_Data[oldIndex].data;
-					m_Data[newIndex].used = true;
+				if (_data[oldIndex].used) {
+					_data[newIndex].data = _data[oldIndex].data;
+					_data[newIndex].used = true;
 				}
 				else {
-					m_Data[newIndex].used = false;
+					_data[newIndex].used = false;
 				}
 			}
 		}
@@ -313,7 +313,7 @@ namespace ds {
 			if (column >= 0 && column < _width) {
 				for (int y = 0; y < _height; ++y) {
 					int idx = getIndex(column, y);
-					m_Data[idx].used = false;
+					_data[idx].used = false;
 				}
 			}
 		}
@@ -323,8 +323,8 @@ namespace ds {
 		void fillColumn(int column, const T& t) {
 			for (int y = 0; y < _height; ++y) {
 				int idx = getIndex(column, y);
-				m_Data[idx].data = t;
-				m_Data[idx].used = true;
+				_data[idx].data = t;
+				_data[idx].used = true;
 			}
 		}
 
@@ -333,7 +333,7 @@ namespace ds {
 		// ------------------------------------------------
 		T& operator() (int x, int y) {
 			int index = getIndex(x, y);
-			return m_Data[index].data;
+			return _data[index].data;
 		}
 
 		// ------------------------------------------------
@@ -341,7 +341,7 @@ namespace ds {
 		// ------------------------------------------------
 		const T& operator() (int x, int y) const {
 			int index = getIndex(x, y);
-			return m_Data[index].data;
+			return _data[index].data;
 		}
 
 		// ------------------------------------------------
@@ -350,7 +350,7 @@ namespace ds {
 		bool isFree(int x, int y) const {
 			int idx = getIndex(x, y);
 			if (idx != -1) {
-				return !m_Data[idx].used;
+				return !_data[idx].used;
 			}
 			return false;
 		}
@@ -388,9 +388,9 @@ namespace ds {
 		void swap(const p2i& first, const p2i& second) {
 			int fi = getIndex(first);
 			int si = getIndex(second);
-			GridNode n = m_Data[fi];
-			m_Data[fi] = m_Data[si];
-			m_Data[si] = n;
+			GridNode n = _data[fi];
+			_data[fi] = _data[si];
+			_data[si] = n;
 		}
 
 
@@ -420,9 +420,9 @@ namespace ds {
 				}
 				if (finalY != 0) {
 					int nidx = getIndex(x, finalY);
-					m_Data[nidx].data = m_Data[idx].data;
-					m_Data[nidx].used = true;
-					m_Data[idx].used = false;
+					_data[nidx].data = _data[idx].data;
+					_data[nidx].used = true;
+					_data[idx].used = false;
 				}
 			}
 		}
@@ -550,7 +550,7 @@ namespace ds {
 			_numMatches = 0;
 			int idx = getIndex(x, y);
 			if (idx != -1) {
-				const GridNode& providedNode = m_Data[idx];
+				const GridNode& providedNode = _data[idx];
 				if (isUsed(x - 1, y)) {
 					findMatching(x - 1, y, providedNode, ret, max);
 				}
@@ -573,7 +573,7 @@ namespace ds {
 		void findMatching(int x, int y, const GridNode& providedNode, p2i* ret, int max) {
 			int idx = getIndex(x, y);
 			if (idx != -1) {
-				const GridNode& currentNode = m_Data[idx];
+				const GridNode& currentNode = _data[idx];
 				if (currentNode.used && isMatch(currentNode.data, providedNode.data)) {
 					if (!isAlreadyProcessed(p2i(currentNode.v), ret, _numMatches)) {
 						if (_numMatches < max) {
@@ -621,7 +621,7 @@ namespace ds {
 		int _size;
 		int _lastColumn;
 		int _startColumn;
-		GridNode* m_Data;
+		GridNode* _data;
 		p2i* _used;
 		p2i* _helper;
 		int _numUsed;
