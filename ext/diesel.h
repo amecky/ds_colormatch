@@ -2826,7 +2826,7 @@ namespace ds {
 	// is mouse button pressed
 	// ------------------------------------------------------
 	bool isMouseButtonPressed(int button) {
-		return _ctx->mouseButtonState[button] == 80;
+		return _ctx->mouseButtonState[button] == 1;
 	}
 
 	// ------------------------------------------------------
@@ -2874,13 +2874,13 @@ namespace ds {
 				return 0;
 			}
 			case WM_LBUTTONDOWN:
-				if (_ctx->mouseButtonState[0] != 80) {
+				if (_ctx->mouseButtonState[0] != 1) {
 					Event lmButtonDownEvent;
 					lmButtonDownEvent.type = ET_MOUSEBUTTON_DOWN;
 					lmButtonDownEvent.mouse = { 0, ButtonState::PRESSED };
 					push_event(lmButtonDownEvent);
 				}
-				_ctx->mouseButtonState[0] = 80;
+				_ctx->mouseButtonState[0] = 1;
 				return 0;
 			case WM_LBUTTONUP:				
 				if (_ctx->mouseButtonState[0] != 0) {
@@ -2897,13 +2897,13 @@ namespace ds {
 				_ctx->mouseButtonClicked[0] = true;
 				return 0;
 			case WM_RBUTTONDOWN:
-				if (_ctx->mouseButtonState[1] != 80) {
+				if (_ctx->mouseButtonState[1] != 1) {
 					Event rmButtonUpEvent;
 					rmButtonUpEvent.type = ET_MOUSEBUTTON_DOWN;
 					rmButtonUpEvent.mouse = { 1, ButtonState::PRESSED };
 					push_event(rmButtonUpEvent);					
 				}
-				_ctx->mouseButtonState[1] = 80;
+				_ctx->mouseButtonState[1] = 1;
 				return 0;
 			case WM_RBUTTONUP:
 				if (_ctx->mouseButtonState[1] != 0) {
