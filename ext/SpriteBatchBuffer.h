@@ -342,7 +342,7 @@ SpriteBatchBuffer::SpriteBatchBuffer(const SpriteBatchBufferInfo& info) : _max(i
 
 	_buffer = new Sprite[_max];
 	ds::vec2 textureSize = ds::getTextureSize(info.textureID);
-	_constantBuffer.screenCenter = ds::vec4(ds::getScreenWidth() / 2, ds::getScreenHeight() / 2, textureSize.x, textureSize.y);
+	_constantBuffer.screenCenter = { static_cast<float>(ds::getScreenWidth()) / 2.0f, static_cast<float>(ds::getScreenHeight()) / 2.0f, textureSize.x, textureSize.y };
 
 	ds::ShaderInfo vsInfo = { 0 , Sprites_VS_Main, sizeof(Sprites_VS_Main), ds::ShaderType::ST_VERTEX_SHADER };
 	RID vertexShader = ds::createShader(vsInfo, "SpritesVS");
@@ -374,7 +374,7 @@ SpriteBatchBuffer::SpriteBatchBuffer(const SpriteBatchBufferInfo& info) : _max(i
 
 	RID basicGroup = ds::StateGroupBuilder()
 		.constantBuffer(constantBuffer, vertexShader)
-		//.blendState(bs_id)
+		.blendState(bs_id)
 		.structuredBuffer(_structuredBufferId, vertexShader, 1)
 		.vertexBuffer(NO_RID)
 		.vertexShader(vertexShader)
@@ -403,7 +403,9 @@ SpriteBatchBuffer::SpriteBatchBuffer(const SpriteBatchBufferInfo& info) : _max(i
 		0.0f,
 		0.0f
 	};
-	ds::RenderPassInfo rpInfo = { &camera, ds::DepthBufferState::DISABLED, 0, 0 };
+	ds::ViewportInfo vpInfo = { ds::getScreenWidth(), ds::getScreenHeight(), 0.0f, 1.0f };
+	RID vp = ds::createViewport(vpInfo, "SpriteOrthoViewport");
+	ds::RenderPassInfo rpInfo = { &camera, vp, ds::DepthBufferState::DISABLED, 0, 0 };
 	_renderPass = ds::createRenderPass(rpInfo, "SpritesOrthoPass");
 	_constantBuffer.wvp = ds::matTranspose(camera.viewProjectionMatrix);
 }

@@ -21,6 +21,7 @@ Board::Board(SpriteBatchBuffer* buffer, GameContext* context, GameSettings* sett
 	_numMoving = 0;
 	_highlightTimer = 0.0f;
 	m_Mode = BM_IDLE;
+
 }
 
 Board::~Board(void) {}
@@ -35,7 +36,7 @@ void Board::fill(int maxColors) {
 			int cid = ds::random(0, maxColors);
 			int offset = offset = cid * CELL_SIZE;
 			ds::vec2 p = convertFromGrid(x, y);
-			MyEntry& e = m_Grid.get(x, y);
+			ColorCell& e = m_Grid.get(x, y);
 			e.color = cid;
 			e.hidden = false;
 			e.scale = 1.0f;
@@ -71,7 +72,7 @@ void Board::render() {
 		for (int x = 0; x < MAX_X; ++x) {
 			for (int y = 0; y < MAX_Y; ++y) {
 				if (m_Grid.isUsed(x, y)) {
-					MyEntry& e = m_Grid.get(x, y);
+					ColorCell& e = m_Grid.get(x, y);
 					if (!e.hidden) {
 						_buffer->add(convertFromGrid(x, y), TEXTURE, ds::vec2(e.scale), 0.0f, _gameContext->colors[e.color]);
 					}
@@ -103,7 +104,7 @@ ScaleState Board::scalePieces(float elapsed, ScaleMode scaleMode) {
 		for (int y = 0; y < MAX_Y; ++y) {
 			if (!m_Grid.isFree(x, y)) {
 				++total;
-				MyEntry& e = m_Grid.get(x, y);
+				ColorCell& e = m_Grid.get(x, y);
 				e.timer += elapsed;
 				float norm = e.timer / e.ttl;
 				if (norm > 1.0f) {
@@ -180,9 +181,9 @@ void Board::update(float elapsed) {
 			_numMoving = 0;
 			_numDroppedCells = m_Grid.dropCells(_droppedCells,TOTAL);
 			for (size_t i = 0; i < _numDroppedCells; ++i) {
-				const ds::DroppedCell<MyEntry>& dc = _droppedCells[i];
+				const ds::DroppedCell<ColorCell>& dc = _droppedCells[i];
 				ds::p2i to = dc.to;
-				MyEntry& e = m_Grid.get(to.x, to.y);
+				ColorCell& e = m_Grid.get(to.x, to.y);
 				e.hidden = true;
 				MovingCell m;
 				m.x = to.x;
@@ -206,7 +207,7 @@ void Board::update(float elapsed) {
 			m_Timer = 0.0f;
 			for (size_t i = 0; i <_numMoving; ++i) {
 				MovingCell& m = _movingCells[i];
-				MyEntry& e = m_Grid.get(m.x, m.y);
+				ColorCell& e = m_Grid.get(m.x, m.y);
 				e.hidden = false;
 			}
 			_numMoving = 0;
@@ -229,7 +230,7 @@ void Board::update(float elapsed) {
 			if (mx != _selectedX || my != _selectedY) {
 				_selectedX = mx;
 				_selectedY = my;
-				MyEntry& me = m_Grid(mx, my);
+				ColorCell& me = m_Grid(mx, my);
 				if (me.state == TS_NORMAL) {
 					me.timer = 0.0f;
 					me.state = TS_WIGGLE;
@@ -248,7 +249,7 @@ void Board::update(float elapsed) {
 	for (int x = 0; x < MAX_X; ++x) {
 		for (int y = 0; y < MAX_Y; ++y) {
 			if (!m_Grid.isFree(x, y)) {
-				MyEntry& e = m_Grid.get(x, y);
+				ColorCell& e = m_Grid.get(x, y);
 				if (e.state == TS_SHRINKING) {
 					e.timer += elapsed;
 					if (e.timer >= _settings->flashTTL) {
@@ -293,7 +294,7 @@ void Board::highlightBlock() {
 	int num = m_Grid.getMatchingBlock(_matches, TOTAL);
 	for (int i = 0; i < num; ++i) {
 		const ds::p2i& m = _matches[i];
-		MyEntry& me = m_Grid(m.x, m.y);
+		ColorCell& me = m_Grid(m.x, m.y);
 		if (me.state == TS_NORMAL) {
 			me.timer = 0.0f;
 			me.state = TS_WIGGLE;
@@ -309,7 +310,7 @@ void Board::clearBoard() {
 	for (int x = 0; x < MAX_X; ++x) {
 		for (int y = 0; y < MAX_Y; ++y) {
 			if (!m_Grid.isFree(x, y)) {
-				MyEntry& e = m_Grid.get(x, y);
+				ColorCell& e = m_Grid.get(x, y);
 				e.timer = 0.0f;
 				e.ttl = ds::random(_settings->clearMinTTL, _settings->clearMaxTTL);
 			}
@@ -333,7 +334,7 @@ bool Board::select(Score* score) {
 		int cx = -1;
 		int cy = -1;
 		if (input::convertMouse2Grid(&cx,&cy)) {
-			MyEntry& me = m_Grid(cx, cy);
+			ColorCell& me = m_Grid(cx, cy);
 			_numMatches = m_Grid.findMatchingNeighbours(cx,cy,_matches,TOTAL);
 			if (_numMatches > 1 ) {
 				m_Timer = 0.0f;
@@ -347,7 +348,7 @@ bool Board::select(Score* score) {
 				score->piecesLeft = _cellCounter;
 				for ( size_t i = 0; i < _numMatches; ++i ) {
 					const ds::p2i& gp = _matches[i];
-					MyEntry& c = m_Grid.get(gp.x, gp.y);
+					ColorCell& c = m_Grid.get(gp.x, gp.y);
 					c.state = TS_SHRINKING;
 					c.timer = 0.0f;
 					++_flashCount;
@@ -362,22 +363,16 @@ bool Board::select(Score* score) {
 void Board::debug() {
 	p2i start = gui::getCurrentPosition();
 	p2i p = start;
-	//std::string dbgTxt;
-	//char buffer[32];
 	for (int y = m_Grid.height() - 1; y >= 0; --y) {
-		//dbgTxt.clear();
 		for (int x = 0; x < m_Grid.width(); ++x) {
 			ds::p2i gp(x, y);
 			if (m_Grid.isUsed(x, y)) {
-				const MyEntry& c = m_Grid.get(gp.x, gp.y);			
+				const ColorCell& c = m_Grid.get(gp.x, gp.y);
 				gui::draw_box(p, p2i(6, 6), _gameContext->colors[c.color]);
-				//sprintf_s(buffer, 32, "%2d ", c.color);
 			}
 			else {
 				gui::draw_box(p, p2i(6, 6), ds::Color(255, 255, 255, 255));
-				//sprintf_s(buffer, 32, " x ");
 			}
-			//dbgTxt.append(buffer);
 			p.x += 10;
 		}
 		p.x = start.x;

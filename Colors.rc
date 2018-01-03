@@ -26,7 +26,6 @@ LANGUAGE LANG_GERMAN, SUBLANG_GERMAN
 //
 // PNG
 //
-
 IDB_PNG2                PNG                     "content\\TextureArray.png"
 #endif    // German (Germany) resources
 /////////////////////////////////////////////////////////////////////////////

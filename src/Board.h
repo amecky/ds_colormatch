@@ -19,7 +19,7 @@ enum TileState {
 // -------------------------------------------------------
 // our specialized grid entry
 // -------------------------------------------------------
-struct MyEntry {
+struct ColorCell {
 	int color;
 	bool hidden;
 	float scale;
@@ -44,12 +44,12 @@ struct MovingCell {
 // -------------------------------------------------------
 // Color grid
 // -------------------------------------------------------
-class ColorGrid : public ds::Grid<MyEntry> {
+class ColorGrid : public ds::Grid<ColorCell> {
 
 public:
-	ColorGrid() : ds::Grid<MyEntry>(MAX_X, MAX_Y) {}
+	ColorGrid() : ds::Grid<ColorCell>(MAX_X, MAX_Y) {}
 	virtual ~ColorGrid() {}
-	bool isMatch(const MyEntry& first, const MyEntry& right) {
+	bool isMatch(const ColorCell& first, const ColorCell& right) {
 		return first.color == right.color;
 	}
 };
@@ -113,7 +113,7 @@ private:
 	void activateMessage(int idx);
 	ScaleState scalePieces(float elapsed, ScaleMode scaleMode);
 	ColorGrid m_Grid;
-	ds::DroppedCell<MyEntry> _droppedCells[TOTAL];
+	ds::DroppedCell<ColorCell> _droppedCells[TOTAL];
 	int _numDroppedCells;
 	MovingCell _movingCells[TOTAL];
 	int _numMoving;

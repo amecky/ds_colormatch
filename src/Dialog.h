@@ -28,6 +28,8 @@ int showGameOverMenu(const Score& score, float time, float ttl);
 
 int showMainMenu(float time, float ttl);
 
+int showGameModeMenu(float time, float ttl);
+
 
 struct GameSettings;
 

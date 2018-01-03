@@ -249,7 +249,7 @@ int showGameOverMenu(const Score& score, float time, float ttl) {
 		ret = 1;
 	}
 	dx = floatButton(time, ttl, FloatInDirection::FID_RIGHT);
-	if (dialog::Button(ds::vec2(dx, 170), ds::vec4(270, 130, 260, 60))) {
+	if (dialog::Button(ds::vec2(dx, 180), ds::vec4(270, 130, 260, 60))) {
 		ret = 2;
 	}
 	dialog::end();
@@ -279,6 +279,39 @@ int showMainMenu(float time, float ttl) {
 	dx = floatButton(time, ttl, FloatInDirection::FID_LEFT);
 	if (dialog::Button(ds::vec2(dx, 160), ds::vec4(270, 130, 260, 60))) {
 		ret = 2;
+	}
+	dialog::end();
+	return ret;
+}
+
+// ---------------------------------------------------------------
+// show game mode menu
+// ---------------------------------------------------------------
+int showGameModeMenu(float time, float ttl) {
+	int ret = 0;
+	dialog::begin();
+	int dy = LOGO_Y_POS;
+	if (time <= ttl) {
+		dy = tweening::interpolate(tweening::easeOutElastic, 1000, LOGO_Y_POS, time, ttl);
+	}
+	dialog::Image(ds::vec2(512, dy), ds::vec4(200, 620, 564, 60));
+	dialog::Image(ds::vec2(512, 35), ds::vec4(0, 955, 530, 12));
+
+	int dx = floatButton(time, ttl, FloatInDirection::FID_LEFT);
+	if (dialog::Button(ds::vec2(dx, 440), ds::vec4(270, 300, 260, 60))) {
+		ret = 1;
+	}
+	if (dialog::isCursorInside(ds::vec2(dx, 440), ds::vec2(260, 60))) {
+		dialog::FormattedText(ds::vec2(512, 370), true, "Try to clean up the board");
+		dialog::FormattedText(ds::vec2(512, 340), true, "without timelimit");
+	}
+	dx = floatButton(time, ttl, FloatInDirection::FID_RIGHT);
+	if (dialog::Button(ds::vec2(dx, 270), ds::vec4(270, 360, 260, 60))) {
+		ret = 2;
+	}
+	if (dialog::isCursorInside(ds::vec2(dx, 270), ds::vec2(260, 60))) {
+		dialog::FormattedText(ds::vec2(512, 200), true, "Try to clean up as much as you");
+		dialog::FormattedText(ds::vec2(512, 170), true, "can within 2 minutes");
 	}
 	dialog::end();
 	return ret;

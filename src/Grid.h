@@ -1,29 +1,12 @@
 #pragma once
+#include <diesel.h>
 #include <vector>
 
 namespace ds {
 
-	struct p2i {
-
-		int x;
-		int y;
-
-		p2i() : x(0), y(0) {}
-		explicit p2i(int v) : x(v), y(v) {}
-		p2i(int _x, int _y) : x(_x), y(_y) {}
-		p2i(const p2i& other) : x(other.x), y(other.y) {}
-
-		void operator=(const p2i& other) {
-			x = other.x;
-			y = other.y;
-		}
-		bool operator==(const p2i& other) {
-			return x == other.x && y == other.y;
-		}
-	};
-
-
-
+	bool inline operator==(const p2i& first, const p2i& other) {
+		return first.x == other.x && first.y == other.y;
+	}
 	// -------------------------------------------------------
 	// Dropped Cell
 	// -------------------------------------------------------
@@ -40,30 +23,15 @@ namespace ds {
 	template<class T>
 	class Grid {
 
-		struct GridNode {
-			p2i v;
-			T data;
-			bool used;
-
-			GridNode() : v(-1, -1), used(false) {}
-
-			GridNode(const GridNode& other) : v(other.v), data(other.data), used(other.used) {}
-
-		};
-
 	public:
 		Grid(int width, int height) : _width(width), _height(height) {
 			_size = width * height;
-			_data = new GridNode[_size];
-			for (int x = 0; x < width; ++x) {
-				for (int y = 0; y < height; ++y) {
-					int index = getIndex(x, y);
-					GridNode* node = &_data[index];
-					node->v = p2i(x, y);
-					node->used = false;
-				}
+			_data = new T[_size];
+			_used = new bool[_size];
+			for (int x = 0; x < _size; ++x) {
+				_used[x] = false;
 			}
-			_used = new p2i[_size];
+			_visited = new p2i[_size];
 			_helper = new p2i[_size];
 			_numUsed = 0;
 			_validMoves = 0;
@@ -122,7 +90,7 @@ namespace ds {
 		// ------------------------------------------------
 		const T& get(const p2i& p) const {
 			int idx = getIndex(p);
-			return _data[idx].data;
+			return _data[idx];
 		}
 
 		// ------------------------------------------------
@@ -130,7 +98,7 @@ namespace ds {
 		// ------------------------------------------------
 		T& get(int x, int y) {
 			int idx = getIndex(x, y);
-			return _data[idx].data;
+			return _data[idx];
 		}
 		// ------------------------------------------------
 		//
@@ -138,9 +106,8 @@ namespace ds {
 		void set(int x, int y, const T& t) {
 			int idx = getIndex(x, y);
 			if (idx != -1) {
-				GridNode* node = &_data[idx];
-				node->data = t;
-				node->used = true;
+				_data[idx] = t;
+				_used[idx] = true;
 				if (x < _startColumn) {
 					_startColumn = x;
 				}
@@ -152,8 +119,8 @@ namespace ds {
 		// ------------------------------------------------
 		bool remove(int x, int y) {
 			int idx = getIndex(x, y);
-			if (idx != -1 && _data[idx].used) {
-				_data[idx].used = false;
+			if (idx != -1 && _used[idx]) {
+				_used[idx] = false;
 				return true;
 				// FIXME: if column is empty set start and last column
 			}
@@ -210,7 +177,7 @@ namespace ds {
 		bool isUsed(int x, int y) const {
 			int idx = getIndex(x, y);
 			if (idx != -1) {
-				return _data[idx].used;
+				return _used[idx];
 			}
 			return false;
 		}
@@ -261,12 +228,12 @@ namespace ds {
 			for (int y = 0; y < _height; ++y) {
 				int oldIndex = getIndex(oldColumn, y);
 				int newIndex = getIndex(newColumn, y);
-				if (_data[oldIndex].used) {
-					_data[newIndex].data = _data[oldIndex].data;
-					_data[newIndex].used = true;
+				if (_used[oldIndex]) {
+					_data[newIndex] = _data[oldIndex];
+					_used[newIndex] = true;
 				}
 				else {
-					_data[newIndex].used = false;
+					_used[newIndex] = false;
 				}
 			}
 		}
@@ -313,7 +280,7 @@ namespace ds {
 			if (column >= 0 && column < _width) {
 				for (int y = 0; y < _height; ++y) {
 					int idx = getIndex(column, y);
-					_data[idx].used = false;
+					_used[idx] = false;
 				}
 			}
 		}
@@ -323,8 +290,8 @@ namespace ds {
 		void fillColumn(int column, const T& t) {
 			for (int y = 0; y < _height; ++y) {
 				int idx = getIndex(column, y);
-				_data[idx].data = t;
-				_data[idx].used = true;
+				_data[idx] = t;
+				_used[idx] = true;
 			}
 		}
 
@@ -333,7 +300,7 @@ namespace ds {
 		// ------------------------------------------------
 		T& operator() (int x, int y) {
 			int index = getIndex(x, y);
-			return _data[index].data;
+			return _data[index];
 		}
 
 		// ------------------------------------------------
@@ -341,7 +308,7 @@ namespace ds {
 		// ------------------------------------------------
 		const T& operator() (int x, int y) const {
 			int index = getIndex(x, y);
-			return _data[index].data;
+			return _data[index];
 		}
 
 		// ------------------------------------------------
@@ -350,7 +317,7 @@ namespace ds {
 		bool isFree(int x, int y) const {
 			int idx = getIndex(x, y);
 			if (idx != -1) {
-				return !_data[idx].used;
+				return !_used[idx];
 			}
 			return false;
 		}
@@ -388,7 +355,7 @@ namespace ds {
 		void swap(const p2i& first, const p2i& second) {
 			int fi = getIndex(first);
 			int si = getIndex(second);
-			GridNode n = _data[fi];
+			T n = _data[fi];
 			_data[fi] = _data[si];
 			_data[si] = n;
 		}
@@ -420,9 +387,9 @@ namespace ds {
 				}
 				if (finalY != 0) {
 					int nidx = getIndex(x, finalY);
-					_data[nidx].data = _data[idx].data;
-					_data[nidx].used = true;
-					_data[idx].used = false;
+					_data[nidx] = _data[idx];
+					_used[nidx] = true;
+					_used[idx] = false;
 				}
 			}
 		}
@@ -497,7 +464,7 @@ namespace ds {
 		// ------------------------------------------------
 		int getMatchingBlock(p2i* ret, int max) {
 			int idx = static_cast<int>(ds::random(0.0f, static_cast<float>(_numUsed)));
-			p2i p = _used[idx];
+			p2i p = _visited[idx];
 			return findMatchingNeighbours(p.x, p.y, ret, max);
 		}
 
@@ -509,15 +476,15 @@ namespace ds {
 			_validMoves = 0;
 			for (int x = 0; x < _width; ++x) {
 				for (int y = 0; y < _height; ++y) {
-					if (!isAlreadyProcessed(p2i(x, y), _used, _numUsed)) {
+					if (!isAlreadyProcessed(p2i(x, y), _visited, _numUsed)) {
 						if (isUsed(x, y)) {
 							int num = simpleFindMatching(x, y, _helper, _size);
 							if (num > 1) {
 								++_validMoves;
 								for (int i = 0; i < num; ++i) {
 									const p2i& c = _helper[i];
-									if (!isAlreadyProcessed(c, _used, _numUsed)) {
-										_used[_numUsed++] = c;
+									if (!isAlreadyProcessed(c, _visited, _numUsed)) {
+										_visited[_numUsed++] = c;
 									}
 								}
 							}
@@ -550,7 +517,7 @@ namespace ds {
 			_numMatches = 0;
 			int idx = getIndex(x, y);
 			if (idx != -1) {
-				const GridNode& providedNode = _data[idx];
+				const T& providedNode = _data[idx];
 				if (isUsed(x - 1, y)) {
 					findMatching(x - 1, y, providedNode, ret, max);
 				}
@@ -570,14 +537,14 @@ namespace ds {
 		// ------------------------------------------------
 		// internal findMatching
 		// ------------------------------------------------
-		void findMatching(int x, int y, const GridNode& providedNode, p2i* ret, int max) {
+		void findMatching(int x, int y, const T& providedNode, p2i* ret, int max) {
 			int idx = getIndex(x, y);
 			if (idx != -1) {
-				const GridNode& currentNode = _data[idx];
-				if (currentNode.used && isMatch(currentNode.data, providedNode.data)) {
-					if (!isAlreadyProcessed(p2i(currentNode.v), ret, _numMatches)) {
+				const T& currentNode = _data[idx];
+				if (_used[idx] && isMatch(currentNode, providedNode)) {
+					if (!isAlreadyProcessed(p2i(x,y), ret, _numMatches)) {
 						if (_numMatches < max) {
-							ret[_numMatches++] = p2i(currentNode.v);
+							ret[_numMatches++] = p2i(x,y);
 						}
 						if (isUsed(x - 1, y)) {
 							findMatching(x - 1, y, currentNode, ret, max);
@@ -621,8 +588,9 @@ namespace ds {
 		int _size;
 		int _lastColumn;
 		int _startColumn;
-		GridNode* _data;
-		p2i* _used;
+		T* _data;
+		bool* _used;
+		p2i* _visited;
 		p2i* _helper;
 		int _numUsed;
 		int _numMatches;

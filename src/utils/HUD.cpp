@@ -21,7 +21,7 @@ void HUD::reset(TimerMode timerMode) {
 		_seconds.setValue(0);
 	}
 	else {
-		_minutes.setValue(3);
+		_minutes.setValue(1);
 		_seconds.setValue(0);
 	}
 	_pieces.setValue(TOTAL);

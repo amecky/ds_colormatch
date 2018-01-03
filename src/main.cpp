@@ -20,11 +20,16 @@
 // ---------------------------------------------------------------
 enum GameMode {
 	GM_MENU,
+	GM_GAME_MODE,
 	GM_RUNNING,
 	GM_GAMEOVER,
 	GM_HIGHSCORES
 };
 
+enum GamePlayMode {
+	GPM_ZEN,
+	GPM_TIMER
+};
 // ---------------------------------------------------------------
 // load image from the resources
 // ---------------------------------------------------------------
@@ -99,6 +104,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	settings.highlightTime = 5.0f;
 	settings.logoSlideTTL = 1.6f;
 
+	GamePlayMode gamePlayMode;
+
 	Board* board = new Board(&spriteBuffer, &gameContext, &settings);
 
 	Score score;
@@ -106,11 +113,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	HUD hud(&spriteBuffer, &gameContext, &score);
 	hud.reset();
 
-	char txt[256];
-
 	bool pressed = false;
 
-	GameMode mode = GM_GAMEOVER;
+	GameMode mode = GM_MENU;
 
 	dialog::init(&spriteBuffer);
 
@@ -122,6 +127,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	float menuTTL = 1.6f;
 
 	bool showDialog = true;
+	bool guiKeyPressed = false;
 
 	HighscoreDialog highscoreDialog(&settings);
 
@@ -143,10 +149,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 			menuTimer += static_cast<float>(ds::getElapsedSeconds());
 			int ret = showMainMenu(menuTimer, menuTTL);
 			if (ret == 1) {
-				color::pick_colors(gameContext.colors, 8);
-				board->fill(4);
-				hud.reset(TimerMode::TM_DEC);
-				mode = GM_RUNNING;
+				menuTimer = 0.0f;
+				mode = GM_GAME_MODE;
 			}
 			else  if (ret == 2) {
 				running = false;
@@ -155,6 +159,24 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 				menuTimer = 0.0f;
 				highscoreDialog.start();
 				mode = GM_HIGHSCORES;
+			}
+		}
+		else if (mode == GM_GAME_MODE) {
+			menuTimer += static_cast<float>(ds::getElapsedSeconds());
+			int ret = showGameModeMenu(menuTimer, menuTTL);
+			if (ret == 1) {
+				color::pick_colors(gameContext.colors, 8);
+				gamePlayMode = GPM_ZEN;
+				hud.reset(TimerMode::TM_INC);
+				board->fill(4);
+				mode = GM_RUNNING;
+			}
+			else if (ret == 2) {
+				color::pick_colors(gameContext.colors, 8);
+				board->fill(4);
+				hud.reset(TimerMode::TM_DEC);
+				gamePlayMode = GPM_TIMER;
+				mode = GM_RUNNING;
 			}
 		}
 		else if (mode == GM_GAMEOVER) {
@@ -205,6 +227,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 				mode = GM_GAMEOVER;
 			}
+			if (gamePlayMode == GPM_TIMER) {
+				if (hud.getMinutes() == 0 && hud.getSeconds() == 0) {
+					board->clearBoard();
+					menuTimer = 0.0f;
+					mode = GM_GAMEOVER;
+				}
+			}
 		}
 
 		if (mode == GM_RUNNING || mode == GM_GAMEOVER) {
@@ -222,9 +251,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 #ifdef DEBUG
 		if (showDialog) {
-			gui::start();
 			p2i sp = p2i(10, 760);
-			if (gui::begin("Debug", &dialogsStates[0], &sp, 300)) {
+			gui::start(&sp, 300);
+			
+			if (gui::begin("Debug", &dialogsStates[0])) {
 				gui::Value("FPS", ds::getFramesPerSecond());
 				int cx = -1;
 				int cy = -1;
@@ -232,7 +262,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 				gui::Value("MPG", ds::vec2(cx, cy));
 				gui::Value("Moves", moves);
 				if (mode == GM_RUNNING) {
-					if (gui::Button("Hightlight")) {
+					if (gui::Button("Highlight")) {
 						board->highlightBlock();
 					}
 					if (gui::Button("Move")) {
@@ -251,9 +281,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 				if (gui::Button("New colors")) {
 					color::pick_colors(gameContext.colors, 8);
 				}
-				gui::debug();
 			}
-			if (gui::begin("Settings", &dialogsStates[1], 300)) {
+			if (gui::begin("Settings", &dialogsStates[1])) {
 				gui::Input("Prepare TTL", &settings.prepareTTL);
 				gui::Input("Message scale", &settings.messageScale);
 				gui::Input("Min SU TTL", &settings.scaleUpMinTTL);
@@ -276,34 +305,20 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 					}
 				}
 			}
-			if (gui::begin("Board", &dialogsStates[2], 300)) {
+			if (gui::begin("Board", &dialogsStates[2])) {
 				board->debug();
 			}
 			gui::end();
 		}
 
-		ds::Event e;
-		char b[128];
-		while (ds::get_event(&e)) {
-			sprintf(b, "event - type: %d\n", e.type);
-			OutputDebugString(b);
-			if (e.type == ds::EventType::ET_KEY_PRESSED) {
-				if (e.key.keyType == ds::IKT_ASCII && e.key.key == 'd') {
-					showDialog = !showDialog;
-				}
-				else if (e.key.keyType == ds::IKT_ASCII && e.key.key == 'e') {
-					board->clearBoard();
-					score.minutes = hud.getMinutes();
-					score.seconds = hud.getSeconds();
-					menuTimer = 0.0f;
-					score.points = score.points - score.piecesLeft * 10 + score.highestCombo * 100;
-					mode = GM_GAMEOVER;
-				}
+		if (ds::isKeyPressed('D')) {
+			if (!guiKeyPressed) {
+				showDialog = !showDialog;
+				guiKeyPressed = true;
 			}
-			if (e.type == ds::EventType::ET_MOUSEBUTTON_PRESSED) {
-				sprintf(b, "Button %d pressed\n", e.mouse.button);
-				OutputDebugString(b);
-			}
+		}
+		else {
+			guiKeyPressed = false;
 		}
 #endif
 
