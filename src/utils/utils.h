@@ -8,7 +8,7 @@ namespace font {
 
 	void renderText(const ds::vec2& pos, const char* txt, SpriteBatchBuffer* buffer, float scale = 1.0f);
 
-	ds::vec2 textSize(const char* txt);
+	ds::vec2 textSize(const char* txt, float scale = 1.0f);
 }
 
 namespace input {

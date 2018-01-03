@@ -129,6 +129,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	bool showDialog = true;
 	bool guiKeyPressed = false;
 
+	float dbgTimer = 0.0f;
+	float dbgTTL = 0.7f;
+	float dbgMaxScale = 1.6f;
+
 	HighscoreDialog highscoreDialog(&settings);
 
 	while (ds::isRunning() && running) {
@@ -244,7 +248,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 			hud.render();
 		}
 
-		//font::renderText(ds::vec2(20, 550), "Hello World", &spriteBuffer);
+		float scale = 1.0f;
+		if (dbgTimer <= dbgTTL) {
+			scale = tweening::interpolate(tweening::easeOutElastic, dbgMaxScale, 1.0f, dbgTimer, dbgTTL);
+			dbgTimer += ds::getElapsedSeconds();
+		}
+		font::renderText(ds::vec2(512, 70), "192", &spriteBuffer, scale);
 		//font::renderText(ds::vec2(20, 90), "RSTUVWXYZ", &spriteBuffer);
 		
 		spriteBuffer.flush();
@@ -268,6 +277,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 					if (gui::Button("Move")) {
 						board->move();
 					}
+				}
+				gui::Input("dbgTTL", &dbgTTL);
+				gui::Input("dbgMaxScale", &dbgMaxScale);
+				if (gui::Button("Reset dbgTimer")) {
+					dbgTimer = 0.0f;
 				}
 				gui::Input("Button ttl", &menuTTL);
 				if (gui::Button("Reset timer")) {

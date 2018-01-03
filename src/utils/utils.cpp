@@ -27,6 +27,12 @@ namespace font {
 	void renderText(const ds::vec2& pos, const char* txt, SpriteBatchBuffer* buffer, float scale) {
 		int l = strlen(txt);
 		ds::vec2 p = pos;
+		if (scale != 1.0f) {
+			ds::vec2 scaled = textSize(txt, scale);
+			ds::vec2 reg = textSize(txt);
+			float diff = (scaled.x - reg.x) * 0.5f;
+			p.x -= diff;
+		}
 		float lw = 0.0f;
 		for (int i = 0; i < l; ++i) {
 			const ds::vec4& r = get_rect(txt[i]);
@@ -36,14 +42,14 @@ namespace font {
 		}
 	}
 
-	ds::vec2 textSize(const char* txt) {
+	ds::vec2 textSize(const char* txt, float scale) {
 		int l = strlen(txt);
 		ds::vec2 p(0.0f);
 		for (int i = 0; i < l; ++i) {
 			const ds::vec4& r = get_rect(txt[i]);
-			p.x += r.z;
-			if (r.w > p.y) {
-				p.y = r.w;
+			p.x += r.z * scale;
+			if (r.w  * scale > p.y) {
+				p.y = r.w * scale;
 			}
 		}
 		return p;
