@@ -164,52 +164,52 @@ static int floatButton(float time, float ttl, FloatInDirection dir) {
 
 const static int LOGO_Y_POS = 600;
 
-HighscoreDialog::HighscoreDialog(GameSettings* settings) : _settings(settings) , _timer(0.0f) {
-
-}
-
-HighscoreDialog::~HighscoreDialog() {
-
-}
-
-void HighscoreDialog::start() {
-	_timer = 0.0f;
-	_mode = 0;
-	_offsetTimer = 0.0f;
-}
-
-int HighscoreDialog::tick(float dt) {
+int showHighscoresMenu(GameContext* ctx, float time, float ttl) {
+	HighscoreContext& hctx = ctx->highscoreContext;
 	int ret = 0;
 	dialog::begin();
 	int dy = LOGO_Y_POS;
-	_timer += dt;
-	if (_timer <= _settings->logoSlideTTL) {
-		dy = tweening::interpolate(tweening::easeOutElastic, 1000, LOGO_Y_POS, _timer, _settings->logoSlideTTL);
+	if (time <= ttl) {
+		dy = tweening::interpolate(tweening::easeOutElastic, 1000, LOGO_Y_POS, time, ttl);
 	}
 	dialog::Image(ds::vec2(512, dy), ds::vec4(200, 560, 560, 55));
-	int dx = floatButton(_timer, _settings->logoSlideTTL, FloatInDirection::FID_LEFT);
-	dialog::Image(ds::vec2(512, 500), ds::vec4(540, 160, 400, 30));
-	if (_mode == 0) {
+	int dx = floatButton(time, ttl, FloatInDirection::FID_LEFT);
+	dialog::Image(ds::vec2(518, 500), ds::vec4(540, 160, 860, 36));
+	if (hctx.mode == 0) {
 		dialog::Text(ds::vec2(512, 500), "ZEN Modus");
 	}
 	else {
 		dialog::Text(ds::vec2(512, 500), "Timer Modus");
 	}
-	_offsetTimer += dt;
-	if (_offsetTimer > 1.0f) {
-		_offsetTimer -= 1.0f;		
-		_offset += 5;
-		if (_offset >= 10) {
-			_offset = 0;
-			_mode = (_mode + 1) & 1;
+	hctx.offsetTimer += ds::getElapsedSeconds();
+	if (hctx.offsetTimer > ctx->settings.higschoreSwitchTTL) {
+		hctx.offsetTimer -= ctx->settings.higschoreSwitchTTL;
+		hctx.offset += 5;
+		if (hctx.offset >= 10) {
+			hctx.offset = 0;
+			hctx.mode = (hctx.mode + 1) & 1;
 		}
 	}
 	char buffer[128];
 	for (int i = 0; i < 5; ++i) {
-		int idx = _offset + _mode * 10;
-		dialog::Image(ds::vec2(512, 450 - i * 50), ds::vec4(0, 825, 700, 36));
-		sprintf(buffer, "%d. Name 66800", (_offset + i + 1));
-		dialog::Text(ds::vec2(512, 450 - i * 50), buffer);
+		int idx = hctx.offset + hctx.mode * 10;
+		int points = hctx.highscores[idx + i].points;
+		// rank
+		dialog::Image(ds::vec2(130, 450 - i * 50), ds::vec4(0, 825, 80, 36));
+		sprintf(buffer, "%2d", (hctx.offset + i + 1));
+		dialog::Text(ds::vec2(100, 450 - i * 50), buffer, false);
+		// name
+		dialog::Image(ds::vec2(460, 450 - i * 50), ds::vec4(0, 825, 500, 36));
+		if (points != -1) {
+			sprintf(buffer, "%s",hctx.highscores[idx + i].name);
+			dialog::Text(ds::vec2(220, 450 - i * 50), buffer, false);
+		}
+		// points
+		dialog::Image(ds::vec2(850, 450 - i * 50), ds::vec4(0, 825, 200, 36));
+		if (points != -1) {
+			sprintf(buffer, "%6d", hctx.highscores[idx + i].points);
+			dialog::Text(ds::vec2(760, 450 - i * 50), buffer, false);
+		}
 	}
 	if (dialog::Button(ds::vec2(dx, 160), ds::vec4(270, 130, 260, 60))) {
 		ret = 2;
@@ -222,7 +222,7 @@ static const char* GAME_OVER_LABELS[] = { "Pieces cleared", "Time", "Highest com
 // ---------------------------------------------------------------
 // show game over menu
 // ---------------------------------------------------------------
-int showGameOverMenu(const Score& score, float time, float ttl) {
+int showGameOverMenu(GameContext* ctx, float time, float ttl) {
 	int ret = 0;
 	dialog::begin();
 	int dy = LOGO_Y_POS;
@@ -232,18 +232,59 @@ int showGameOverMenu(const Score& score, float time, float ttl) {
 	dialog::Image(ds::vec2(512, dy), ds::vec4(200, 500, 540, 55));
 
 	int y = 540;
-	int x = 150;
+	int x = 180;
 	for (int i = 0; i < 4; ++i) {
 		dialog::Image(ds::vec2(x + 200, y - i * 60), ds::vec4(540, 160, 450, 40));
 		dialog::Image(ds::vec2(x + 550, y - i * 60), ds::vec4(540, 160, 200, 40));
 		dialog::Text(ds::vec2(x, y - i * 60), GAME_OVER_LABELS[i], false);
 	}
 
-	dialog::FormattedText(ds::vec2(x + 540, y), false, "%d", score.itemsCleared);
-	dialog::FormattedText(ds::vec2(x + 480, y - 60), false, "%02d %02d", score.minutes, score.seconds);
-	dialog::FormattedText(ds::vec2(x + 540, y - 120), false, "%d", score.highestCombo);
-	dialog::FormattedText(ds::vec2(x + 460, y - 180), false, "%06d", score.points);
+	dialog::FormattedText(ds::vec2(x + 540, y), false, "%d", ctx->score.itemsCleared);
+	dialog::FormattedText(ds::vec2(x + 480, y - 60), false, "%02d %02d", ctx->score.minutes, ctx->score.seconds);
+	dialog::FormattedText(ds::vec2(x + 540, y - 120), false, "%d", ctx->score.highestCombo);
+	dialog::FormattedText(ds::vec2(x + 460, y - 180), false, "%06d", ctx->score.points);
 
+	if (ctx->ranking != -1) {
+		int r = ctx->ranking + 1;
+		if (r > 10) {
+			r -= 10;
+		}
+		dialog::FormattedText(ds::vec2(x + 460, y - 240), true, "New highscore at %d", r);
+	}
+	int dx = floatButton(time, ttl, FloatInDirection::FID_LEFT);
+	if (dialog::Button(ds::vec2(dx, 260), ds::vec4(0, 70, 260, 60))) {
+		ret = 1;
+	}
+	dx = floatButton(time, ttl, FloatInDirection::FID_RIGHT);
+	if (dialog::Button(ds::vec2(dx, 180), ds::vec4(270, 130, 260, 60))) {
+		ret = 2;
+	}
+	dialog::end();
+	return ret;
+}
+
+// ---------------------------------------------------------------
+// show game over menu
+// ---------------------------------------------------------------
+int showNewHighscoreMenu(GameContext* ctx, float time, float ttl) {
+	int ret = 0;
+	dialog::begin();
+	int dy = LOGO_Y_POS;
+	if (time <= ttl) {
+		dy = tweening::interpolate(tweening::easeOutElastic, 1000, LOGO_Y_POS, time, ttl);
+	}
+	dialog::Image(ds::vec2(512, dy), ds::vec4(200, 500, 540, 55));
+
+	int y = 540;
+	int x = 180;
+
+	if (ctx->ranking != -1) {
+		int r = ctx->ranking + 1;
+		if (r > 10) {
+			r -= 10;
+		}
+		dialog::FormattedText(ds::vec2(512, 500), true, "New highscore at rank %d", r);
+	}
 	int dx = floatButton(time, ttl, FloatInDirection::FID_LEFT);
 	if (dialog::Button(ds::vec2(dx, 260), ds::vec4(0, 70, 260, 60))) {
 		ret = 1;

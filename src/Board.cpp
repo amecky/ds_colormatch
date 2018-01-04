@@ -12,8 +12,8 @@ ds::vec2 convertFromGrid(int gx, int gy) {
 	return ds::vec2(STARTX + gx * CELL_SIZE, STARTY + gy * CELL_SIZE);
 }
 
-Board::Board(SpriteBatchBuffer* buffer, GameContext* context, GameSettings* settings) : _buffer(buffer) , _gameContext(context), _settings(settings) {
-	_messages[0] = Message{ 0.0f, _settings->prepareTTL, 1.0f, ds::Color(255,255,255,255), ds::vec4(  200, 440, 515, 55), 0.0f, false };
+Board::Board(SpriteBatchBuffer* buffer, GameContext* context) : _buffer(buffer) , _gameContext(context) {
+	_messages[0] = Message{ 0.0f, _gameContext->settings.prepareTTL, 1.0f, ds::Color(255,255,255,255), ds::vec4(  200, 440, 515, 55), 0.0f, false };
 	_messages[1] = Message{ 0.0f, 0.8f, 1.0f, ds::Color(255,255,255,255), ds::vec4(75, 5,  130, 55), 0.0f, false };
 	_numMatches = 0;
 	_numMovesLeft = 0;
@@ -33,7 +33,7 @@ void Board::fill(int maxColors) {
 	_cellCounter = 0;
 	for ( int x = 0; x < MAX_X; ++x ) {		
 		for ( int y = 0; y < MAX_Y; ++y ) {		
-			int cid = ds::random(0, maxColors);
+			int cid = static_cast<int>(ds::random(0, maxColors));
 			int offset = offset = cid * CELL_SIZE;
 			ds::vec2 p = convertFromGrid(x, y);
 			ColorCell& e = m_Grid.get(x, y);
@@ -42,7 +42,7 @@ void Board::fill(int maxColors) {
 			e.scale = 1.0f;
 			e.state = TS_NORMAL;
 			e.timer = 0.0f;
-			e.ttl = ds::random(_settings->scaleUpMinTTL, _settings->scaleUpMaxTTL);
+			e.ttl = ds::random(_gameContext->settings.scaleUpMinTTL, _gameContext->settings.scaleUpMaxTTL);
 			m_Grid.set(x, y, e);
 			++_cellCounter;
 		}
@@ -151,7 +151,7 @@ void Board::update(float elapsed) {
 				msg.active = false;
 				msg.timer = 0.0f;
 			}
-			msg.scale = 1.0f + sin(msg.timer / msg.ttl * ds::PI) * _settings->messageScale;
+			msg.scale = 1.0f + sin(msg.timer / msg.ttl * ds::PI) * _gameContext->settings.messageScale;
 		}
 	}
 	
@@ -165,7 +165,7 @@ void Board::update(float elapsed) {
 
 	else if (m_Mode == BM_PREPARE) {
 		m_Timer += elapsed;
-		if (m_Timer >= _settings->prepareTTL) {
+		if (m_Timer >= _gameContext->settings.prepareTTL) {
 			m_Timer = 0.0f;
 			m_Mode = BM_FILLING;
 		}
@@ -173,7 +173,7 @@ void Board::update(float elapsed) {
 
 	else if (m_Mode == BM_FLASHING) {
 		m_Timer += elapsed;
-		if (m_Timer > _settings->flashTTL) {
+		if (m_Timer > _gameContext->settings.flashTTL) {
 			m_Mode = BM_READY;
 			m_Timer = 0.0f;
 			m_Grid.remove(_matches, _numMatches,true);
@@ -202,7 +202,7 @@ void Board::update(float elapsed) {
 	}
 	else if (m_Mode == BM_MOVING) {
 		m_Timer += elapsed;
-		if (m_Timer >= _settings->droppingTTL) {
+		if (m_Timer >= _gameContext->settings.droppingTTL) {
 			m_Mode = BM_READY;
 			m_Timer = 0.0f;
 			for (size_t i = 0; i <_numMoving; ++i) {
@@ -213,11 +213,11 @@ void Board::update(float elapsed) {
 			_numMoving = 0;
 		}
 		else {
-			if (m_Timer < _settings->droppingTTL) {
-				float norm = m_Timer / _settings->droppingTTL;
+			if (m_Timer < _gameContext->settings.droppingTTL) {
+				float norm = m_Timer / _gameContext->settings.droppingTTL;
 				for (size_t i = 0; i < _numMoving; ++i) {
 					MovingCell& m = _movingCells[i];
-					m.current = tweening::interpolate(&tweening::linear, m.start, m.end, m_Timer, _settings->droppingTTL);
+					m.current = tweening::interpolate(&tweening::linear, m.start, m.end, m_Timer, _gameContext->settings.droppingTTL);
 				}
 			}
 		}
@@ -252,25 +252,25 @@ void Board::update(float elapsed) {
 				ColorCell& e = m_Grid.get(x, y);
 				if (e.state == TS_SHRINKING) {
 					e.timer += elapsed;
-					if (e.timer >= _settings->flashTTL) {
+					if (e.timer >= _gameContext->settings.flashTTL) {
 						e.state = TS_NORMAL;
 						e.scale = 1.0f;
 						--_flashCount;
 					}
 					else {
-						float norm = e.timer /_settings->flashTTL;
+						float norm = e.timer / _gameContext->settings.flashTTL;
 						e.scale = 1.0f - norm * 0.9f;
 					}
 				}
 				else if (e.state == TS_WIGGLE) {
 					e.timer += elapsed;
-					if (e.timer >= _settings->wiggleTTL) {
+					if (e.timer >= _gameContext->settings.wiggleTTL) {
 						e.state = TS_NORMAL;
 						e.scale = 1.0f;
 					}
 					else {
-						float norm = e.timer / _settings->wiggleTTL;
-						e.scale = 1.0f + sin(norm * ds::TWO_PI * 2.0f) * _settings->wiggleScale;
+						float norm = e.timer / _gameContext->settings.wiggleTTL;
+						e.scale = 1.0f + sin(norm * ds::TWO_PI * 2.0f) * _gameContext->settings.wiggleScale;
 					}
 				}
 			}
@@ -280,7 +280,7 @@ void Board::update(float elapsed) {
 	if (m_Mode == BM_READY) {
 		// check if we should help the player and give him a hint
 		_highlightTimer += elapsed;
-		if (_highlightTimer > _settings->highlightTime) {
+		if (_highlightTimer > _gameContext->settings.highlightTime) {
 			highlightBlock();
 			_highlightTimer = 0.0f;
 		}
@@ -312,7 +312,7 @@ void Board::clearBoard() {
 			if (!m_Grid.isFree(x, y)) {
 				ColorCell& e = m_Grid.get(x, y);
 				e.timer = 0.0f;
-				e.ttl = ds::random(_settings->clearMinTTL, _settings->clearMaxTTL);
+				e.ttl = ds::random(_gameContext->settings.clearMinTTL, _gameContext->settings.clearMaxTTL);
 			}
 		}
 	}

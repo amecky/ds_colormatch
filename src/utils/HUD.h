@@ -2,17 +2,6 @@
 #include <diesel.h>
 #include <SpriteBatchBuffer.h>
 
-
-struct Score {
-	int itemsCleared;
-	int seconds;
-	int minutes;
-	int points;
-	int totalPoints;
-	int highestCombo;
-	int piecesLeft;
-};
-
 enum TimerMode {
 	TM_INC,
 	TM_DEC
@@ -23,11 +12,11 @@ struct GameContext;
 class HUD {
 
 public:
-	HUD(SpriteBatchBuffer* buffer, GameContext* context, Score* score);
+	HUD(SpriteBatchBuffer* buffer, GameContext* context);
 	~HUD();
 	void render();
 	void tick(float dt);
-	void reset(TimerMode timerMode = TimerMode::TM_INC);
+	void reset();
 	void rebuildScore(bool flash = true);
 	int getMinutes() const {
 		return _minutes;
@@ -43,8 +32,8 @@ private:
 	int _points;
 	int _minutes;
 	int _seconds;
+	float _mode_x_pos[2];
 	SpriteBatchBuffer* _buffer;
-	Score* _score;
 	TimerMode _timerMode;
 	GameContext* _gameContext;
 };

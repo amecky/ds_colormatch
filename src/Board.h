@@ -90,7 +90,7 @@ enum ScaleMode {
 };
 
 public:
-	Board(SpriteBatchBuffer* buffer, GameContext* context, GameSettings* settings);
+	Board(SpriteBatchBuffer* buffer, GameContext* context);
 	virtual ~Board();
 	void fill(int maxColors);
 	bool select(Score* score);
@@ -120,9 +120,7 @@ private:
 	BoardMode m_Mode;
 	float m_Timer;
 	int m_Counter;
-	GameSettings* _settings;
 	int _flashCount;
-
 	int _cellCounter;
 	int _selectedX;
 	int _selectedY;

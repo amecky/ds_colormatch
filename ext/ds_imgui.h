@@ -49,7 +49,7 @@ namespace gui {
 		ds::Color boxSelectionColor;
 		ds::Color sliderColor;
 		ds::Color scrollSliderColor;
-		float lineSpacing;
+		int lineSpacing;
 	};
 
 	class ListBoxModel {
@@ -641,8 +641,8 @@ namespace gui {
 		// --------------------------------------------------------
 		static const char* extract_name(UIContext* ctx, const char* t) {
 			strncpy(ctx->tmpBuffer, t, 256);
-			int l = strlen(t);
-			for (int i = 0; i < l; ++i) {
+			size_t l = strlen(t);
+			for (size_t i = 0; i < l; ++i) {
 				if (ctx->tmpBuffer[i] == '#') {
 					ctx->tmpBuffer[i] = '\0';
 				}
@@ -734,12 +734,12 @@ namespace gui {
 		// --------------------------------------------------------
 		p2i add_text(UIContext* ctx, const p2i& pos, const char* text, int xoffset = 10, const ds::Color& color = ds::Color(1.0f, 1.0f, 1.0f, 1.0f)) {
 			const char* lbl = extract_name(ctx, text);
-			int l = strlen(lbl);
+			size_t l = strlen(lbl);
 			p2i p = pos;
 			p.x += xoffset;
 			int w = 0;
 			p2i dim(0);
-			for (int i = 0; i < l; ++i) {
+			for (size_t i = 0; i < l; ++i) {
 				int idx = (int)lbl[i] - 32;
 				if (idx >= 0 && idx < 127) {
 					int c = lbl[i] - 32;
@@ -810,7 +810,7 @@ namespace gui {
 		ds::Color(167, 77, 75, 255), // box selection color
 		ds::Color( 96, 96, 96, 255), // slider color
 		ds::Color( 80, 80, 80, 255), // scroll slider color
-		5.0f // line spacing
+		5 // line spacing
 	};
 
 	// ----------------------------------------------------------
@@ -982,7 +982,7 @@ namespace gui {
 		bool grouping;
 		char inputText[256];
 		char tmpBuffer[256];
-		int caretPos;
+		size_t caretPos;
 		p2i size;
 		IMGUISettings settings;
 		renderer::UIContext* uiContext;
@@ -1071,9 +1071,9 @@ namespace gui {
 	// determine text size
 	// -------------------------------------------------------
 	p2i textSize(const char* txt) {
-		int l = strlen(txt);
+		size_t l = strlen(txt);
 		p2i p(0);
-		p.x = l * 8;
+		p.x = (int)l * 8;
 		p.y = 14;
 		return p;
 	}
@@ -1081,13 +1081,13 @@ namespace gui {
 	// -------------------------------------------------------
 	// determine text size
 	// -------------------------------------------------------
-	p2i limitedTextSize(const char* txt, int maxLength) {
-		int l = strlen(txt);
+	p2i limitedTextSize(const char* txt, size_t maxLength) {
+		size_t l = strlen(txt);
 		if (l > maxLength) {
 			l = maxLength;
 		}
 		p2i p(0);
-		p.x = l * 8;
+		p.x = (int)l * 8;
 		p.y = 14;
 		return p;
 	}
@@ -1135,7 +1135,7 @@ namespace gui {
 	// FIXME: provide numeric input only
 	static bool handleTextInput(bool numeric = false) {
 		bool ret = false;
-		int len = strlen(_guiCtx->inputText);
+		size_t len = strlen(_guiCtx->inputText);
 		for (int i = 0; i < ds::getNumInputKeys(); ++i) {
 			const ds::InputKey& key = ds::getInputKey(i);
 			if (key.type == ds::IKT_SYSTEM) {
@@ -1309,7 +1309,7 @@ namespace gui {
 		renderer::reset(_guiCtx->uiContext);
 		_guiCtx->idStack.reset();
 		ds::vec2 mp = ds::getMousePosition();
-		_guiCtx->mousePosition = p2i(mp.x, mp.y);
+		_guiCtx->mousePosition = p2i(static_cast<int>(mp.x), static_cast<int>(mp.y));
 		_guiCtx->hotItem = 0;
 		_guiCtx->clicked = false;
 		if (ds::isMouseButtonPressed(0)) {
@@ -1425,7 +1425,7 @@ namespace gui {
 		p2i dim = p2i(120, 20);
 		p2i textDim = textSize(text);
 		p.x += (120 - textDim.x) / 2;
-		renderer::add_text(_guiCtx->uiContext, p, text, 0.0f);
+		renderer::add_text(_guiCtx->uiContext, p, text, 0);
 		dim.y = 20;
 		p2i buttonPos = _guiCtx->currentPos;
 		p2i m = dim;
@@ -1542,7 +1542,7 @@ namespace gui {
 			_tmpBuffer[cnt++] = '-';
 		}
 
-		int start = pow(10, integers - 1);
+		int start = static_cast<int>(pow(10, integers - 1));
 		int t = static_cast<int>(value);
 		if (t < 0) {
 			t *= -1;
@@ -1567,7 +1567,7 @@ namespace gui {
 		if (tv < 0.0f) {
 			tv *= -1.0f;
 		}
-		float frac = modf(tv, &r) * (start * 10);
+		float frac = static_cast<float>(modf(tv, &r) * (start * 10));
 		t = static_cast<int>(frac);
 		for (int i = 0; i < prec; ++i) {
 			int f = t / start;
@@ -1820,7 +1820,7 @@ namespace gui {
 		checkItem(p, p2i(width, 20));
 		renderer::add_box(_guiCtx->uiContext, p, p2i(width, 20), _guiCtx->settings.labelBoxColor);
 		// calculate offset
-		int val = *v * 255.0f;
+		int val = static_cast<int>(*v * 255.0f);
 		int d = 255;
 		if (isClicked()) {
 			ds::vec2 mp = ds::getMousePosition();
@@ -2029,17 +2029,17 @@ namespace gui {
 	void Histogram(float* values, int num, float minValue, float maxValue, float step, int width, int height) {
 		p2i p = _guiCtx->currentPos;
 		
-		float barWidth = 10.0f;
-		p.y -= height / 2.0f;
+		int barWidth = 10;
+		p.y -= height / 2;
 		float delta = maxValue - minValue;
 		if (delta == 0.0f) {
 			delta = 1.0f;
 		}
 		int dd = num - 1;
 		float st = width / static_cast<float>(dd);
-		float bw = width / static_cast<float>(num);
-		if (bw < 2.0f) {
-			bw = 2.0f;
+		int bw = width / num;
+		if (bw < 2) {
+			bw = 2;
 		}
 		renderer::add_box(_guiCtx->uiContext, p, p2i(width, height), ds::Color(51, 51, 51, 255));
 		char buffer[16];
@@ -2051,8 +2051,8 @@ namespace gui {
 			if (v < minValue) {
 				v = minValue;
 			}
-			float current = (v - minValue) / delta;
-			float yp = current * height;
+			int current = (v - minValue) / delta;
+			int yp = current * height;
 			p = _guiCtx->currentPos;
 			p.y -= (height - yp / 2);
 			p.x += i * bw + 2;
@@ -2069,7 +2069,7 @@ namespace gui {
 		for (int i = 0; i < stp + 1; ++i) {
 			p = _guiCtx->currentPos;
 			p.y -= (stp - i) * hs;
-			p.x += width + 20.0f;
+			p.x += width + 20;
 			sprintf_s(buffer, 16, "%g", (step * i));
 			renderer::add_text(_guiCtx->uiContext, p, buffer);
 		}
@@ -2082,7 +2082,7 @@ namespace gui {
 	void DiagramInternal(const p2i& pos, float* values, int num, float minValue, float maxValue, float step, int width, int height) {
 		p2i p = pos;
 		
-		p.y -= height / 2.0f;
+		p.y -= height / 2;
 		float delta = (maxValue - minValue);
 		if (delta == 0.0f) {
 			delta = 1.0f;
@@ -2109,7 +2109,7 @@ namespace gui {
 			float norm = (v - minValue) / delta;
 			float yp = norm * height;
 			p = pos;
-			p.y = pos.y - height + yp;
+			p.y = pos.y - height + static_cast<int>(yp);
 			p.x += static_cast<float>(i)* st - 2.0f;
 			renderer::add_box(_guiCtx->uiContext, p, p2i(4, 4), ds::Color(192, 0, 0, 255));
 		}
@@ -2120,7 +2120,7 @@ namespace gui {
 			p = pos;
 			float current = 1.0f - (step*i) / delta;
 			float yp = current * height;
-			p.y -= yp;
+			p.y -= static_cast<int>(yp);
 			renderer::add_box(_guiCtx->uiContext, p, p2i(width, 1), ds::Color(16, 16, 16, 255));
 		}
 		moveForward(p2i(width, height + 30));
@@ -2181,7 +2181,7 @@ namespace gui {
 			}
 
 			float d = 1.0f - static_cast<float>(*offset) / static_cast<float>(size - max);
-			int dy = d * (sideHeight) - 30;
+			int dy = static_cast<int>(d) * (sideHeight) - 30;
 			p.y = cy + dy;
 			renderer::add_box(_guiCtx->uiContext, p, p2i(20, 6), _guiCtx->settings.scrollSliderColor);
 			popID();

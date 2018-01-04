@@ -22,29 +22,15 @@ namespace dialog {
 
 }
 
-struct Score;
+struct GameContext;
 
-int showGameOverMenu(const Score& score, float time, float ttl);
+int showGameOverMenu(GameContext* ctx, float time, float ttl);
+
+int showNewHighscoreMenu(GameContext* ctx, float time, float ttl);
 
 int showMainMenu(float time, float ttl);
 
 int showGameModeMenu(float time, float ttl);
 
+int showHighscoresMenu(GameContext* ctx, float time, float ttl);
 
-struct GameSettings;
-
-class HighscoreDialog {
-
-public:
-	HighscoreDialog(GameSettings* settings);
-	~HighscoreDialog();
-	void start();
-	int tick(float dt);
-private:
-	GameSettings* _settings;
-	float _timer;
-	int _mode;
-	int _offset;
-	float _offsetTimer;
-
-};

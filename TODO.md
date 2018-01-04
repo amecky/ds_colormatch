@@ -1,8 +1,9 @@
-- [ ] show game mode when playing
+- [x] show game mode when playing
 - [ ] check if highscore after game
 - [ ] show input name dialog
-- [ ] save and load highscores
-- [ ] when timer mode -> set timer played to 2 minutes
-- [ ] maybe 1 instead of 2 minutes
-- [ ] show only 5 highscores for every mode
-- [ ] check timing of highscores (mode switching)
+- [x] save and load highscores
+- [x] when timer mode -> set timer played to 2 minutes
+- [x] maybe 1 instead of 2 minutes
+- [x] show only 10 highscores for every mode
+- [x] check timing of highscores (mode switching)
+- [ ] add bonus if all pieces are cleared

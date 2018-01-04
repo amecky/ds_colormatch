@@ -16,7 +16,7 @@ const float MESSAGE_SCALE = 0.4f;
 // Font starts at 200, 230
 // x-offset / width
 const ds::vec2 FONT_DEF[] = {
-	ds::vec2(1,35),   // A
+	ds::vec2(1,34),   // A
 	ds::vec2(35,29),  // B
 	ds::vec2(66,27),  // C
 	ds::vec2(94,30),  // D

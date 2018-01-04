@@ -16,21 +16,6 @@
 #include "utils\tweening.h"
 
 // ---------------------------------------------------------------
-// Game modes
-// ---------------------------------------------------------------
-enum GameMode {
-	GM_MENU,
-	GM_GAME_MODE,
-	GM_RUNNING,
-	GM_GAMEOVER,
-	GM_HIGHSCORES
-};
-
-enum GamePlayMode {
-	GPM_ZEN,
-	GPM_TIMER
-};
-// ---------------------------------------------------------------
 // load image from the resources
 // ---------------------------------------------------------------
 RID loadImage(const char* name) {
@@ -53,6 +38,289 @@ RID loadImage(const char* name) {
 	FreeResource(myResourceData);
 	return textureID;
 }
+
+// ---------------------------------------------------------------
+// load highscores
+// ---------------------------------------------------------------
+void loadHighscores(GameContext* ctx) {
+	FILE* fp = fopen("scores", "rb");
+	if (fp) {
+		for (int i = 0; i < 20; ++i) {
+			fread(&ctx->highscoreContext.highscores[i].points, sizeof(int), 1, fp);
+			fread(&ctx->highscoreContext.highscores[i].name, sizeof(char) * 16, 1, fp);
+		}
+		fclose(fp);
+	}
+	else {
+		for (int i = 0; i < 20; ++i) {
+			ctx->highscoreContext.highscores[i].points = -1;
+			sprintf(ctx->highscoreContext.highscores[i].name, "Name %d", (i + 1));
+		}
+	}
+}
+
+// ---------------------------------------------------------------
+// save highscores
+// ---------------------------------------------------------------
+void saveHighscores(GameContext* ctx) {
+	FILE* fp = fopen("scores", "wb");
+	if (fp) {
+		for (int i = 0; i < 20; ++i) {
+			fwrite(&ctx->highscoreContext.highscores[i].points, sizeof(int), 1, fp);
+			fwrite(&ctx->highscoreContext.highscores[i].name, sizeof(char) * 16, 1, fp);
+		}
+		fclose(fp);
+	}
+}
+
+// ---------------------------------------------------------------
+// get highscore ranking
+// ---------------------------------------------------------------
+int getHighscoreRanking(GameContext* ctx) {
+	int offset = 0;
+	if (ctx->game_play_mode == GamePlayMode::GPM_TIMER) {
+		offset += 10;
+	}
+	for (int i = 0; i < 10; ++i) {
+		int current = ctx->highscoreContext.highscores[offset + i].points;
+		if (current == -1 || current < ctx->score.points) {
+			return offset + i;
+		}
+	}
+	return -1;
+}
+
+// ---------------------------------------------------------------
+// insert highscore
+// ---------------------------------------------------------------
+void insertHighscore(GameContext* ctx, int rank) {
+	int start = rank;
+	int end = 9;
+	if (rank > 10) {
+		end = 19;
+	}
+	for (int i = end; i > start; --i) {
+		ctx->highscoreContext.highscores[i] = ctx->highscoreContext.highscores[i - 1];
+	}
+	ctx->highscoreContext.highscores[rank].points = ctx->score.points;
+	sprintf_s(ctx->highscoreContext.highscores[rank].name, "%s", ctx->user);
+}
+
+// ---------------------------------------------------------------
+// show main menu
+// ---------------------------------------------------------------
+void showMainMenu(GameContext* ctx) {
+	ctx->menuTimer += static_cast<float>(ds::getElapsedSeconds());
+	int ret = showMainMenu(ctx->menuTimer, ctx->settings.menuTTL);
+	if (ret == 1) {
+		ctx->menuTimer = 0.0f;
+		ctx->mode = GameMode::GM_GAME_MODE;
+	}
+	else  if (ret == 2) {
+		ctx->running = false;
+	}
+	else if (ret == 3) {
+		ctx->menuTimer = 0.0f;
+		ctx->highscoreContext.mode = 0;
+		ctx->highscoreContext.offset = 0;
+		ctx->highscoreContext.offsetTimer = 0.0f;
+		ctx->mode = GameMode::GM_HIGHSCORES;
+	}
+}
+
+// ---------------------------------------------------------------
+// show game over
+// ---------------------------------------------------------------
+void showGameOver(GameContext* ctx) {
+	ctx->menuTimer += static_cast<float>(ds::getElapsedSeconds());
+	ctx->board->render();
+	int ret = showGameOverMenu(ctx, ctx->menuTimer, ctx->settings.menuTTL);
+	if (ret == 1) {
+		color::pick_colors(ctx->colors, 8);
+		ctx->board->fill(4);
+		ctx->mode = GameMode::GM_RUNNING;
+	}
+	else if (ret == 2) {
+		ctx->menuTimer = 0.0f;
+		ctx->mode = GameMode::GM_MENU;
+	}
+	ctx->board->update(static_cast<float>(ds::getElapsedSeconds()));
+}
+
+// ---------------------------------------------------------------
+// show game mode selection
+// ---------------------------------------------------------------
+void showGameModeSelection(GameContext* ctx) {
+	ctx->menuTimer += static_cast<float>(ds::getElapsedSeconds());
+	int ret = showGameModeMenu(ctx->menuTimer, ctx->settings.menuTTL);
+	if (ret == 1) {
+		color::pick_colors(ctx->colors, 8);
+		ctx->game_play_mode = GamePlayMode::GPM_ZEN;
+		ctx->hud->reset();
+		ctx->board->fill(4);
+		ctx->mode = GameMode::GM_RUNNING;
+	}
+	else if (ret == 2) {
+		color::pick_colors(ctx->colors, 8);
+		ctx->board->fill(4);
+		ctx->game_play_mode = GamePlayMode::GPM_TIMER;
+		ctx->hud->reset();
+		ctx->mode = GameMode::GM_RUNNING;
+	}
+}
+
+// ---------------------------------------------------------------
+// show highscores
+// ---------------------------------------------------------------
+void showHighscores(GameContext* ctx) {
+	ctx->menuTimer += static_cast<float>(ds::getElapsedSeconds());
+	int ret = showHighscoresMenu(ctx, ctx->menuTimer, ctx->settings.menuTTL);
+	if (ret == 2) {
+		ctx->menuTimer = 0.0f;
+		ctx->mode = GameMode::GM_MENU;
+	}
+}
+
+// ---------------------------------------------------------------
+// show highscores
+// ---------------------------------------------------------------
+void showNewHighscore(GameContext* ctx) {
+	ctx->menuTimer += static_cast<float>(ds::getElapsedSeconds());
+	int ret = showNewHighscoreMenu(ctx, ctx->menuTimer, ctx->settings.menuTTL);
+	if (ret == 2) {
+		ctx->menuTimer = 0.0f;
+		ctx->mode = GameMode::GM_MENU;
+	}
+}
+
+// ---------------------------------------------------------------
+// main game
+// ---------------------------------------------------------------
+void showMainGame(GameContext* ctx) {
+	if (ds::isMouseButtonPressed(0) && !ctx->pressed) {
+		if (ctx->board->select(&ctx->score)) {
+			ctx->hud->rebuildScore();
+			ctx->hud->setPieces(ctx->score.piecesLeft);
+		}
+		ctx->pressed = true;
+	}
+	if (!ds::isMouseButtonPressed(0) && ctx->pressed) {
+		ctx->pressed = false;
+	}
+	ctx->moves = ctx->board->getNumberOfMoves();
+
+	if (ctx->board->isReady()) {
+		ctx->hud->tick(static_cast<float>(ds::getElapsedSeconds()));
+	}
+
+	if (ctx->moves == 0) {
+		ctx->board->clearBoard();
+		ctx->score.minutes = ctx->hud->getMinutes();
+		ctx->score.seconds = ctx->hud->getSeconds();
+		ctx->menuTimer = 0.0f;
+		ctx->ranking = getHighscoreRanking(ctx);
+		if (ctx->ranking != -1) {
+			ctx->mode = GameMode::GM_NEW_HIGHSCORE;
+		}
+		else {
+			ctx->mode = GameMode::GM_GAMEOVER;
+		}
+	}
+	if (ctx->game_play_mode == GamePlayMode::GPM_TIMER) {
+		if (ctx->hud->getMinutes() == 0 && ctx->hud->getSeconds() == 0) {
+			ctx->board->clearBoard();
+			ctx->menuTimer = 0.0f;
+			ctx->score.minutes = 2;
+			ctx->score.seconds = 0;
+			ctx->ranking = getHighscoreRanking(ctx);
+			if (ctx->ranking != -1) {
+				ctx->mode = GameMode::GM_NEW_HIGHSCORE;
+			}
+			else {
+				ctx->mode = GameMode::GM_GAMEOVER;
+			}
+		}
+	}
+	ctx->board->render();
+	ctx->hud->render();
+	ctx->board->update(static_cast<float>(ds::getElapsedSeconds()));
+}
+
+// ---------------------------------------------------------------
+// Debug GUI
+// ---------------------------------------------------------------
+void showDebugGUI(GameContext* ctx, int* dialogsStates) {
+	p2i sp = p2i(10, 760);
+	gui::start(&sp, 300);
+
+	if (gui::begin("Debug", &dialogsStates[0])) {
+		gui::Value("FPS", ds::getFramesPerSecond());
+		int cx = -1;
+		int cy = -1;
+		input::convertMouse2Grid(&cx, &cy);
+		gui::Value("MPG", ds::vec2(cx, cy));
+		gui::Value("Moves", ctx->moves);
+		if (ctx->mode == GameMode::GM_RUNNING) {
+			if (gui::Button("Highlight")) {
+				ctx->board->highlightBlock();
+			}
+			if (gui::Button("Move")) {
+				ctx->board->move();
+			}
+		}		
+		gui::Input("Button ttl", &ctx->settings.menuTTL);
+		if (gui::Button("Reset timer")) {
+			ctx->menuTimer = 0.0f;
+		}
+		if (gui::Button("Game Over")) {
+			ctx->board->clearBoard();
+			ctx->mode = GameMode::GM_GAMEOVER;
+			ctx->menuTimer = 0.0f;
+			ctx->score.minutes = ctx->hud->getMinutes();
+			ctx->score.seconds = ctx->hud->getSeconds();
+			ctx->menuTimer = 0.0f;
+			ctx->ranking = getHighscoreRanking(ctx);
+			if (ctx->ranking != -1) {
+				ctx->mode = GameMode::GM_NEW_HIGHSCORE;
+			}
+			else {
+				ctx->mode = GameMode::GM_GAMEOVER;
+			}
+		}
+		if (gui::Button("New colors")) {
+			color::pick_colors(ctx->colors, 8);
+		}
+	}
+	if (gui::begin("Settings", &dialogsStates[1])) {
+		gui::Input("Prepare TTL", &ctx->settings.prepareTTL);
+		gui::Input("Message scale", &ctx->settings.messageScale);
+		gui::Input("Min SU TTL", &ctx->settings.scaleUpMinTTL);
+		gui::Input("Max SU TTL", &ctx->settings.scaleUpMaxTTL);
+		gui::Input("Flash TTL", &ctx->settings.flashTTL);
+		gui::Input("Dropping TTL", &ctx->settings.droppingTTL);
+		gui::Input("Wiggle TTL", &ctx->settings.wiggleTTL);
+		gui::Input("Wiggle Scale", &ctx->settings.wiggleScale);
+		gui::Input("Min Clear TTL", &ctx->settings.clearMinTTL);
+		gui::Input("Max Clear TTL", &ctx->settings.clearMaxTTL);
+		gui::Input("Highlight Time", &ctx->settings.highlightTime);
+		gui::Input("HS switch TTL", &ctx->settings.higschoreSwitchTTL);
+		if (gui::Button("Restart")) {
+			if (ctx->mode == GameMode::GM_RUNNING) {
+				ctx->board->fill(4);
+			}
+		}
+		if (gui::Button("Clear")) {
+			if (ctx->mode == GameMode::GM_RUNNING) {
+				ctx->board->clearBoard();
+			}
+		}
+	}
+	if (gui::begin("Board", &dialogsStates[2])) {
+		ctx->board->debug();
+	}
+	gui::end();
+}
+
 
 // ---------------------------------------------------------------
 // initialize rendering system
@@ -88,54 +356,55 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 	GameContext gameContext;
 	color::pick_colors(gameContext.colors, 8);
-
+	gameContext.game_play_mode = GamePlayMode::GPM_ZEN;
 	// prepare the game settings
-	GameSettings settings;
-	settings.flashTTL = 0.3f;
-	settings.droppingTTL = 0.2f;
-	settings.wiggleTTL = 0.4f;
-	settings.wiggleScale = 0.2f;
-	settings.clearMinTTL = 0.2f;
-	settings.clearMaxTTL = 0.8f;
-	settings.scaleUpMinTTL = 0.2f;
-	settings.scaleUpMaxTTL = 0.8f;
-	settings.prepareTTL = 1.0f;
-	settings.messageScale = 0.8f;
-	settings.highlightTime = 5.0f;
-	settings.logoSlideTTL = 1.6f;
+	gameContext.settings.flashTTL = 0.3f;
+	gameContext.settings.droppingTTL = 0.2f;
+	gameContext.settings.wiggleTTL = 0.4f;
+	gameContext.settings.wiggleScale = 0.2f;
+	gameContext.settings.clearMinTTL = 0.2f;
+	gameContext.settings.clearMaxTTL = 0.8f;
+	gameContext.settings.scaleUpMinTTL = 0.2f;
+	gameContext.settings.scaleUpMaxTTL = 0.8f;
+	gameContext.settings.prepareTTL = 1.0f;
+	gameContext.settings.messageScale = 0.8f;
+	gameContext.settings.highlightTime = 5.0f;
+	gameContext.settings.logoSlideTTL = 1.6f;
+	gameContext.settings.menuTTL = 1.6f;
+	gameContext.settings.higschoreSwitchTTL = 2.0f;
+	gameContext.ranking = -1;
+	gameContext.highscoreContext.mode = 0;
+	gameContext.highscoreContext.offset = 0;
+	gameContext.highscoreContext.offsetTimer = 0.0f;
+	loadHighscores(&gameContext);
 
-	GamePlayMode gamePlayMode;
-
-	Board* board = new Board(&spriteBuffer, &gameContext, &settings);
-
-	Score score;
-
-	HUD hud(&spriteBuffer, &gameContext, &score);
-	hud.reset();
-
-	bool pressed = false;
-
-	GameMode mode = GM_MENU;
+	gameContext.board = new Board(&spriteBuffer, &gameContext);
+	gameContext.hud = new HUD(&spriteBuffer, &gameContext);
+	gameContext.hud->reset();
+	gameContext.pressed = false;
+	gameContext.mode = GameMode::GM_NEW_HIGHSCORE;
+	gameContext.moves = 0;
+	gameContext.running = true;
+	gameContext.menuTimer = 0.0f;
+	gameContext.user[0] = '\0';
 
 	dialog::init(&spriteBuffer);
-
-	int moves = 0;
-
-	bool running = true;
-
-	float menuTimer = 0.0f;
-	float menuTTL = 1.6f;
 
 	bool showDialog = true;
 	bool guiKeyPressed = false;
 
-	float dbgTimer = 0.0f;
-	float dbgTTL = 0.7f;
-	float dbgMaxScale = 1.6f;
-
-	HighscoreDialog highscoreDialog(&settings);
-
-	while (ds::isRunning() && running) {
+	// FIXME:
+	gameContext.ranking = 4;
+	/*
+	gameContext.game_play_mode = GamePlayMode::GPM_TIMER;
+	gameContext.score.points = 1362;
+	sprintf_s(gameContext.user, "My Test Name7");
+	int nr = getHighscoreRanking(&gameContext);
+	if (nr != -1) {
+		insertHighscore(&gameContext, nr);
+	}
+	*/
+	while (ds::isRunning() && gameContext.running) {
 
 		ds::begin();
 
@@ -145,184 +414,30 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 			spriteBuffer.add(ds::vec2(-50 + i * 200, 384), ds::vec4(0, 200, 200, 600));
 		}
 
-		if (mode == GM_RUNNING) {
-			board->render();
+		if (gameContext.mode == GameMode::GM_MENU) {
+			showMainMenu(&gameContext);
 		}
-
-		if (mode == GM_MENU) {
-			menuTimer += static_cast<float>(ds::getElapsedSeconds());
-			int ret = showMainMenu(menuTimer, menuTTL);
-			if (ret == 1) {
-				menuTimer = 0.0f;
-				mode = GM_GAME_MODE;
-			}
-			else  if (ret == 2) {
-				running = false;
-			}
-			else if (ret == 3) {
-				menuTimer = 0.0f;
-				highscoreDialog.start();
-				mode = GM_HIGHSCORES;
-			}
+		else if (gameContext.mode == GameMode::GM_GAME_MODE) {
+			showGameModeSelection(&gameContext);
 		}
-		else if (mode == GM_GAME_MODE) {
-			menuTimer += static_cast<float>(ds::getElapsedSeconds());
-			int ret = showGameModeMenu(menuTimer, menuTTL);
-			if (ret == 1) {
-				color::pick_colors(gameContext.colors, 8);
-				gamePlayMode = GPM_ZEN;
-				hud.reset(TimerMode::TM_INC);
-				board->fill(4);
-				mode = GM_RUNNING;
-			}
-			else if (ret == 2) {
-				color::pick_colors(gameContext.colors, 8);
-				board->fill(4);
-				hud.reset(TimerMode::TM_DEC);
-				gamePlayMode = GPM_TIMER;
-				mode = GM_RUNNING;
-			}
+		else if (gameContext.mode == GameMode::GM_GAMEOVER) {
+			showGameOver(&gameContext);
 		}
-		else if (mode == GM_GAMEOVER) {
-			menuTimer += static_cast<float>(ds::getElapsedSeconds());
-			board->render();
-			int ret = showGameOverMenu(score,menuTimer,menuTTL);
-			if (ret == 1) {
-				color::pick_colors(gameContext.colors, 8);
-				board->fill(4);
-				mode = GM_RUNNING;
-			}
-			else if (ret == 2) {
-				menuTimer = 0.0f;
-				mode = GM_MENU;
-			}
+		else if (gameContext.mode == GameMode::GM_HIGHSCORES) {
+			showHighscores(&gameContext);
 		}
-		else if (mode == GM_HIGHSCORES) {
-			int ret = highscoreDialog.tick(static_cast<float>(ds::getElapsedSeconds()));
-			if (ret == 2) {
-				menuTimer = 0.0f;
-				mode = GM_MENU;
-			}
+		else if (gameContext.mode == GameMode::GM_NEW_HIGHSCORE) {
+			showNewHighscore(&gameContext);
 		}
-		else if (mode == GM_RUNNING) {			
-			if (ds::isMouseButtonPressed(0) && !pressed) {
-				if ( board->select(&score)) {
-					hud.rebuildScore();
-					hud.setPieces(score.piecesLeft);
-				}
-				pressed = true;
-			}
-			if (!ds::isMouseButtonPressed(0) && pressed) {
-				pressed = false;
-			}
-			moves = board->getNumberOfMoves();
-
-			if (board->isReady()) {
-				hud.tick(static_cast<float>(ds::getElapsedSeconds()));
-			}
-
-			if (moves == 0) {
-				board->clearBoard();
-				score.minutes = hud.getMinutes();
-				score.seconds = hud.getSeconds();
-				menuTimer = 0.0f;
-
-				int totalScore = score.points - score.piecesLeft * 10 + score.highestCombo * 100;
-
-				mode = GM_GAMEOVER;
-			}
-			if (gamePlayMode == GPM_TIMER) {
-				if (hud.getMinutes() == 0 && hud.getSeconds() == 0) {
-					board->clearBoard();
-					menuTimer = 0.0f;
-					mode = GM_GAMEOVER;
-				}
-			}
+		else if (gameContext.mode == GameMode::GM_RUNNING) {
+			showMainGame(&gameContext);
 		}
-
-		if (mode == GM_RUNNING || mode == GM_GAMEOVER) {
-			board->update(static_cast<float>(ds::getElapsedSeconds()));
-		}
-
-		if (mode == GM_RUNNING) {
-			hud.render();
-		}
-
-		float scale = 1.0f;
-		if (dbgTimer <= dbgTTL) {
-			scale = tweening::interpolate(tweening::easeOutElastic, dbgMaxScale, 1.0f, dbgTimer, dbgTTL);
-			dbgTimer += ds::getElapsedSeconds();
-		}
-		font::renderText(ds::vec2(512, 70), "192", &spriteBuffer, scale);
-		//font::renderText(ds::vec2(20, 90), "RSTUVWXYZ", &spriteBuffer);
 		
 		spriteBuffer.flush();
 
 #ifdef DEBUG
 		if (showDialog) {
-			p2i sp = p2i(10, 760);
-			gui::start(&sp, 300);
-			
-			if (gui::begin("Debug", &dialogsStates[0])) {
-				gui::Value("FPS", ds::getFramesPerSecond());
-				int cx = -1;
-				int cy = -1;
-				input::convertMouse2Grid(&cx, &cy);
-				gui::Value("MPG", ds::vec2(cx, cy));
-				gui::Value("Moves", moves);
-				if (mode == GM_RUNNING) {
-					if (gui::Button("Highlight")) {
-						board->highlightBlock();
-					}
-					if (gui::Button("Move")) {
-						board->move();
-					}
-				}
-				gui::Input("dbgTTL", &dbgTTL);
-				gui::Input("dbgMaxScale", &dbgMaxScale);
-				if (gui::Button("Reset dbgTimer")) {
-					dbgTimer = 0.0f;
-				}
-				gui::Input("Button ttl", &menuTTL);
-				if (gui::Button("Reset timer")) {
-					menuTimer = 0.0f;
-				}
-				if (gui::Button("Game Over")) {
-					board->clearBoard();
-					mode = GM_GAMEOVER;
-					menuTimer = 0.0f;
-				}
-				if (gui::Button("New colors")) {
-					color::pick_colors(gameContext.colors, 8);
-				}
-			}
-			if (gui::begin("Settings", &dialogsStates[1])) {
-				gui::Input("Prepare TTL", &settings.prepareTTL);
-				gui::Input("Message scale", &settings.messageScale);
-				gui::Input("Min SU TTL", &settings.scaleUpMinTTL);
-				gui::Input("Max SU TTL", &settings.scaleUpMaxTTL);
-				gui::Input("Flash TTL", &settings.flashTTL);
-				gui::Input("Dropping TTL", &settings.droppingTTL);
-				gui::Input("Wiggle TTL", &settings.wiggleTTL);
-				gui::Input("Wiggle Scale", &settings.wiggleScale);
-				gui::Input("Min Clear TTL", &settings.clearMinTTL);
-				gui::Input("Max Clear TTL", &settings.clearMaxTTL);
-				gui::Input("Highlight Time", &settings.highlightTime);
-				if (gui::Button("Restart")) {
-					if (mode == GM_RUNNING) {
-						board->fill(4);
-					}
-				}
-				if (gui::Button("Clear")) {
-					if (mode == GM_RUNNING) {
-						board->clearBoard();
-					}
-				}
-			}
-			if (gui::begin("Board", &dialogsStates[2])) {
-				board->debug();
-			}
-			gui::end();
+			showDebugGUI(&gameContext, dialogsStates);
 		}
 
 		if (ds::isKeyPressed('D')) {
@@ -338,6 +453,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 
 		ds::end();
 	}
-	delete board;
+	saveHighscores(&gameContext);
+	delete gameContext.board;
+	delete gameContext.hud;
 	ds::shutdown();
 }
