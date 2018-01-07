@@ -167,6 +167,10 @@ void showGameModeSelection(GameContext* ctx) {
 		ctx->hud->reset();
 		ctx->mode = GameMode::GM_RUNNING;
 	}
+	else if (ret == 3) {
+		ctx->menuTimer = 0.0f;
+		ctx->mode = GameMode::GM_MENU;
+	}
 }
 
 // ---------------------------------------------------------------
@@ -187,9 +191,9 @@ void showHighscores(GameContext* ctx) {
 void showNewHighscore(GameContext* ctx) {
 	ctx->menuTimer += static_cast<float>(ds::getElapsedSeconds());
 	int ret = showNewHighscoreMenu(ctx, ctx->menuTimer, ctx->settings.menuTTL);
-	if (ret == 2) {
+	if (ret == 1) {
 		ctx->menuTimer = 0.0f;
-		ctx->mode = GameMode::GM_MENU;
+		ctx->mode = GameMode::GM_GAMEOVER;
 	}
 }
 
@@ -332,6 +336,9 @@ void initialize() {
 	rs.title = "Colors - match 3 game";
 	rs.clearColor = ds::Color(0.125f, 0.125f, 0.125f, 1.0f);
 	rs.multisampling = 4;
+#ifdef DEBUG
+	rs.supportDebug = true;
+#endif
 	ds::init(rs);
 }
 
@@ -340,6 +347,8 @@ void initialize() {
 // ---------------------------------------------------------------
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline, int iCmdshow) {
 	
+	//_CrtSetBreakAlloc(247);
+
 	initialize();
 	
 #ifdef DEBUG
@@ -382,7 +391,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	gameContext.hud = new HUD(&spriteBuffer, &gameContext);
 	gameContext.hud->reset();
 	gameContext.pressed = false;
-	gameContext.mode = GameMode::GM_NEW_HIGHSCORE;
+	gameContext.mode = GameMode::GM_GAME_MODE;
 	gameContext.moves = 0;
 	gameContext.running = true;
 	gameContext.menuTimer = 0.0f;
@@ -449,11 +458,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		else {
 			guiKeyPressed = false;
 		}
+
+		ds::dbgPrint(0, 37, "FPS: %d", ds::getFramesPerSecond());
 #endif
 
 		ds::end();
 	}
 	saveHighscores(&gameContext);
+	gui::shutdown();
 	delete gameContext.board;
 	delete gameContext.hud;
 	ds::shutdown();

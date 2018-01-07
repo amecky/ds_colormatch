@@ -41,6 +41,7 @@ namespace ds {
 
 		virtual ~Grid() {
 			delete[] _helper;
+			delete[] _visited;
 			delete[] _data;
 			delete[] _used;
 		}

@@ -789,7 +789,7 @@ namespace gui {
 		}
 
 		void shutdown(UIContext* ctx) {
-			//delete ctx->sprites;
+			delete[] ctx->sprites.items;
 			delete[] ctx->buffer->data;
 			delete ctx->buffer;
 			delete[] ctx->overlay_buffer->data;
@@ -957,7 +957,7 @@ namespace gui {
 			}
 			const char* p = text;
 			while (*p != '\0') {
-				if (index < 256) {
+				if (index < 255) {
 					buffer[index++] = *p;
 				}
 				++p;
@@ -1188,7 +1188,7 @@ namespace gui {
 			}
 			else {
 				if ((key.value >= 32 && key.value < 128) || key.value == '.' || key.value == '-') {
-					if (len < 256) {
+					if (len < 255) {
 						if (_guiCtx->caretPos < len) {
 							memmove(_guiCtx->inputText + _guiCtx->caretPos + 1, _guiCtx->inputText + _guiCtx->caretPos, len - _guiCtx->caretPos);
 						}
@@ -1335,9 +1335,6 @@ namespace gui {
 	// --------------------------------------------------------
 	bool begin(const char* header, int* state) {
 		pushID(header);
-		//_guiCtx->startPos = _guiCtx->currentPos;
-		//_guiCtx->uiContext->startPos = _guiCtx->currentPos;
-		//_guiCtx->currentPos = _guiCtx->currentPos;
 		pushID("Box");
 		checkItem(_guiCtx->currentPos, p2i(20, 20));
 		if (isClicked()) {
@@ -1353,8 +1350,6 @@ namespace gui {
 		np.x += 20;
 		checkItem(np, p2i(_guiCtx->width - 20, 20));
 		p2i pos = _guiCtx->currentPos;
-		//pos.x -= 5;
-		//renderer::add_box(_guiCtx->uiContext, pos, _guiCtx->width, 256, _guiCtx->settings.backgroundColor, renderer::ResizeType::RT_Y);
 		// header
 		pos.x += 5;
 		renderer::add_box(_guiCtx->uiContext, pos, _guiCtx->width, 20, _guiCtx->settings.headerBoxColor);
@@ -1370,15 +1365,6 @@ namespace gui {
 		else {
 			renderer::add_text(_guiCtx->uiContext, pos, "-");
 		}
-		
-		/*
-		if (isHot(np, p2i(width - 20, 20))) {
-			if (_guiCtx->mouseDown) {
-				position->x = _guiCtx->mousePosition.x - width / 2;
-				position->y = _guiCtx->mousePosition.y;
-			}
-		}
-		*/
 		int advance = 20 + _guiCtx->settings.lineSpacing;
 		moveForward(p2i(10, advance));
 		popID();

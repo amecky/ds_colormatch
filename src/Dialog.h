@@ -16,9 +16,9 @@ namespace dialog {
 
 	void FormattedText(const ds::vec2& pos, bool centered, const char* fmt, ...);
 
-	void end();
+	void Input(const ds::vec2& pos, char* text, int maxLength);
 
-	void shutdown();
+	void end();
 
 }
 
