@@ -14,7 +14,8 @@
 #include "..\resource.h"
 #include "utils\colors.h"
 #include "utils\tweening.h"
-
+#define DS_PROFILER
+#include <ds_profiler.h>
 // ---------------------------------------------------------------
 // load image from the resources
 // ---------------------------------------------------------------
@@ -110,6 +111,7 @@ void insertHighscore(GameContext* ctx, int rank) {
 // show main menu
 // ---------------------------------------------------------------
 void showMainMenu(GameContext* ctx) {
+	perf::ZoneTracker("showMainMenu");
 	ctx->menuTimer += static_cast<float>(ds::getElapsedSeconds());
 	int ret = showMainMenu(ctx->menuTimer, ctx->settings.menuTTL);
 	if (ret == 1) {
@@ -132,6 +134,7 @@ void showMainMenu(GameContext* ctx) {
 // show game over
 // ---------------------------------------------------------------
 void showGameOver(GameContext* ctx) {
+	perf::ZoneTracker("showGameOver");
 	ctx->menuTimer += static_cast<float>(ds::getElapsedSeconds());
 	ctx->board->render();
 	int ret = showGameOverMenu(ctx, ctx->menuTimer, ctx->settings.menuTTL);
@@ -151,6 +154,7 @@ void showGameOver(GameContext* ctx) {
 // show game mode selection
 // ---------------------------------------------------------------
 void showGameModeSelection(GameContext* ctx) {
+	perf::ZoneTracker("showGameModeSelection");
 	ctx->menuTimer += static_cast<float>(ds::getElapsedSeconds());
 	int ret = showGameModeMenu(ctx->menuTimer, ctx->settings.menuTTL);
 	if (ret == 1) {
@@ -177,6 +181,7 @@ void showGameModeSelection(GameContext* ctx) {
 // show highscores
 // ---------------------------------------------------------------
 void showHighscores(GameContext* ctx) {
+	perf::ZoneTracker("showHighscores");
 	ctx->menuTimer += static_cast<float>(ds::getElapsedSeconds());
 	int ret = showHighscoresMenu(ctx, ctx->menuTimer, ctx->settings.menuTTL);
 	if (ret == 2) {
@@ -189,6 +194,7 @@ void showHighscores(GameContext* ctx) {
 // show highscores
 // ---------------------------------------------------------------
 void showNewHighscore(GameContext* ctx) {
+	perf::ZoneTracker("showNewHighscore");
 	ctx->menuTimer += static_cast<float>(ds::getElapsedSeconds());
 	int ret = showNewHighscoreMenu(ctx, ctx->menuTimer, ctx->settings.menuTTL);
 	if (ret == 1) {
@@ -201,6 +207,7 @@ void showNewHighscore(GameContext* ctx) {
 // main game
 // ---------------------------------------------------------------
 void showMainGame(GameContext* ctx) {
+	perf::ZoneTracker("showMainGame");
 	if (ds::isMouseButtonPressed(0) && !ctx->pressed) {
 		if (ctx->board->select(&ctx->score)) {
 			ctx->hud->rebuildScore();
@@ -254,11 +261,20 @@ void showMainGame(GameContext* ctx) {
 // Debug GUI
 // ---------------------------------------------------------------
 void showDebugGUI(GameContext* ctx, int* dialogsStates) {
+	perf::ZoneTracker("showDebugGUI");
 	p2i sp = p2i(10, 760);
 	gui::start(&sp, 300);
-
-	if (gui::begin("Debug", &dialogsStates[0])) {
+	if (gui::begin("Performance", &dialogsStates[0])) {
+		for (int i = 0; i < perf::num_events(); ++i) {
+			const char* n = perf::get_name(i);
+			float avg = perf::avg(i);
+			if (n != 0 && avg > 0.0f) {
+				gui::FormattedText("%-24s %2.6f", n, avg);
+			}
+		}
 		gui::Value("FPS", ds::getFramesPerSecond());
+	}
+	if (gui::begin("Debug", &dialogsStates[1])) {
 		int cx = -1;
 		int cy = -1;
 		input::convertMouse2Grid(&cx, &cy);
@@ -295,7 +311,7 @@ void showDebugGUI(GameContext* ctx, int* dialogsStates) {
 			color::pick_colors(ctx->colors, 8);
 		}
 	}
-	if (gui::begin("Settings", &dialogsStates[1])) {
+	if (gui::begin("Settings", &dialogsStates[2])) {
 		gui::Input("Prepare TTL", &ctx->settings.prepareTTL);
 		gui::Input("Message scale", &ctx->settings.messageScale);
 		gui::Input("Min SU TTL", &ctx->settings.scaleUpMinTTL);
@@ -319,7 +335,7 @@ void showDebugGUI(GameContext* ctx, int* dialogsStates) {
 			}
 		}
 	}
-	if (gui::begin("Board", &dialogsStates[2])) {
+	if (gui::begin("Board", &dialogsStates[3])) {
 		ctx->board->debug();
 	}
 	gui::end();
@@ -350,10 +366,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	//_CrtSetBreakAlloc(247);
 
 	initialize();
+
+	perf::init();
 	
 #ifdef DEBUG
 	gui::init();
-	int dialogsStates[3] = { 0,0,0 };
+	int dialogsStates[4] = { 0,0,0,0 };
 #endif
 
 	// load image using stb_image
@@ -415,57 +433,69 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	*/
 	while (ds::isRunning() && gameContext.running) {
 
+		perf::reset();
+
 		ds::begin();
 
-		spriteBuffer.begin();		
+		{
+			perf::ZoneTracker("Main");
 
-		for (int i = 0; i < 6; ++i) {
-			spriteBuffer.add(ds::vec2(-50 + i * 200, 384), ds::vec4(0, 200, 200, 600));
-		}
+			spriteBuffer.begin();
 
-		if (gameContext.mode == GameMode::GM_MENU) {
-			showMainMenu(&gameContext);
-		}
-		else if (gameContext.mode == GameMode::GM_GAME_MODE) {
-			showGameModeSelection(&gameContext);
-		}
-		else if (gameContext.mode == GameMode::GM_GAMEOVER) {
-			showGameOver(&gameContext);
-		}
-		else if (gameContext.mode == GameMode::GM_HIGHSCORES) {
-			showHighscores(&gameContext);
-		}
-		else if (gameContext.mode == GameMode::GM_NEW_HIGHSCORE) {
-			showNewHighscore(&gameContext);
-		}
-		else if (gameContext.mode == GameMode::GM_RUNNING) {
-			showMainGame(&gameContext);
-		}
-		
-		spriteBuffer.flush();
-
-#ifdef DEBUG
-		if (showDialog) {
-			showDebugGUI(&gameContext, dialogsStates);
-		}
-
-		if (ds::isKeyPressed('D')) {
-			if (!guiKeyPressed) {
-				showDialog = !showDialog;
-				guiKeyPressed = true;
+			for (int i = 0; i < 6; ++i) {
+				spriteBuffer.add(ds::vec2(-50 + i * 200, 384), ds::vec4(0, 200, 200, 600));
 			}
-		}
-		else {
-			guiKeyPressed = false;
-		}
 
-		ds::dbgPrint(0, 37, "FPS: %d", ds::getFramesPerSecond());
+			if (gameContext.mode == GameMode::GM_MENU) {
+				showMainMenu(&gameContext);
+			}
+			else if (gameContext.mode == GameMode::GM_GAME_MODE) {
+				showGameModeSelection(&gameContext);
+			}
+			else if (gameContext.mode == GameMode::GM_GAMEOVER) {
+				showGameOver(&gameContext);
+			}
+			else if (gameContext.mode == GameMode::GM_HIGHSCORES) {
+				showHighscores(&gameContext);
+			}
+			else if (gameContext.mode == GameMode::GM_NEW_HIGHSCORE) {
+				showNewHighscore(&gameContext);
+			}
+			else if (gameContext.mode == GameMode::GM_RUNNING) {
+				showMainGame(&gameContext);
+			}
+
+			spriteBuffer.flush();
+		}
+#ifdef DEBUG
+		{
+			perf::ZoneTracker("GUI");
+			if (showDialog) {
+				showDebugGUI(&gameContext, dialogsStates);
+			}
+
+			if (ds::isKeyPressed('D')) {
+				if (!guiKeyPressed) {
+					showDialog = !showDialog;
+					guiKeyPressed = true;
+				}
+			}
+			else {
+				guiKeyPressed = false;
+			}
+
+			ds::dbgPrint(0, 37, "FPS: %d", ds::getFramesPerSecond());
+		}
 #endif
-
-		ds::end();
+		{
+			perf::ZoneTracker("Render");
+			ds::end();
+		}
+		perf::finalize();
 	}
 	saveHighscores(&gameContext);
 	gui::shutdown();
+	perf::shutdown();
 	delete gameContext.board;
 	delete gameContext.hud;
 	ds::shutdown();

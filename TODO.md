@@ -1,6 +1,6 @@
 - [x] show game mode when playing
 - [ ] check if highscore after game
-- [ ] show input name dialog
+- [x] show input name dialog
 - [x] save and load highscores
 - [x] when timer mode -> set timer played to 2 minutes
 - [x] maybe 1 instead of 2 minutes
