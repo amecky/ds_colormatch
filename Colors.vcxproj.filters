@@ -42,6 +42,12 @@
     <ClInclude Include="ext\ds_profiler.h">
       <Filter>ext</Filter>
     </ClInclude>
+    <ClInclude Include="ext\ds_game_ui.h">
+      <Filter>ext</Filter>
+    </ClInclude>
+    <ClInclude Include="src\utils\highscore.h">
+      <Filter>utils</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Board.cpp" />
@@ -57,6 +63,9 @@
       <Filter>utils</Filter>
     </ClCompile>
     <ClCompile Include="src\utils\colors.cpp">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="src\utils\highscore.cpp">
       <Filter>utils</Filter>
     </ClCompile>
   </ItemGroup>

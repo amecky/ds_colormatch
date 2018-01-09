@@ -20,6 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ext\diesel.h" />
+    <ClInclude Include="ext\ds_game_ui.h" />
     <ClInclude Include="ext\ds_imgui.h" />
     <ClInclude Include="ext\ds_profiler.h" />
     <ClInclude Include="ext\SpriteBatchBuffer.h" />
@@ -31,6 +32,7 @@
     <ClInclude Include="src\GameSettings.h" />
     <ClInclude Include="src\Grid.h" />
     <ClInclude Include="src\utils\colors.h" />
+    <ClInclude Include="src\utils\highscore.h" />
     <ClInclude Include="src\utils\HUD.h" />
     <ClInclude Include="src\utils\tweening.h" />
     <ClInclude Include="src\utils\utils.h" />
@@ -40,6 +42,7 @@
     <ClCompile Include="src\Dialog.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\utils\colors.cpp" />
+    <ClCompile Include="src\utils\highscore.cpp" />
     <ClCompile Include="src\utils\HUD.cpp" />
     <ClCompile Include="src\utils\tweening.cpp" />
     <ClCompile Include="src\utils\utils.cpp" />

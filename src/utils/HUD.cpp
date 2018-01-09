@@ -1,4 +1,5 @@
 #include "HUD.h"
+#include <ds_game_ui.h>
 #include "tweening.h"
 #include "..\Constants.h"
 #include "..\GameSettings.h"
@@ -7,8 +8,8 @@
 HUD::HUD(SpriteBatchBuffer* buffer,  GameContext* context) 
 	: _buffer(buffer) , _gameContext(context), _pieces(3), _points(6), _minutes(2), _seconds(2) {
 	reset();
-	_mode_x_pos[0] = font::textSize("ZEN Mode").x;
-	_mode_x_pos[1] = font::textSize("Timer Mode").x;
+	_mode_x_pos[0] = dialog::text_size("ZEN Mode").x;
+	_mode_x_pos[1] = dialog::text_size("Timer Mode").x;
 }
 
 HUD::~HUD() {
@@ -88,21 +89,22 @@ void HUD::setPieces(int pc) {
 // render
 // ------------------------------------------------------
 void HUD::render() {
+
+	dialog::begin();
+
 	char buffer[128];
 	ds::vec2 p(120, 725);
 	
 	sprintf_s(buffer, "%06d", _points);
-	font::renderText(p, buffer, _buffer, 1.0f);
+	dialog::Text(p, buffer, false);
 	p.x = 820.0f;	
 	sprintf_s(buffer, "%02d:%02d", _minutes, _seconds);
-	font::renderText(p, buffer, _buffer, 1.0f);
+	dialog::Text(p, buffer, false);
 	if (_gameContext->game_play_mode == GamePlayMode::GPM_ZEN) {
-		p.x = (1024.0f - _mode_x_pos[0]) * 0.5f;
-		font::renderText(p, "ZEN Mode", _buffer, 1.0f);
+		dialog::Text(p, "ZEN Mode");
 	}
 	else {
-		p.x = (1024.0f - _mode_x_pos[1]) * 0.5f;
-		font::renderText(p, "Timer Mode", _buffer, 1.0f);
+		dialog::Text(p, "Timer Mode");
 	}
 
 	p.y = 40.0f;
@@ -113,7 +115,9 @@ void HUD::render() {
 		scale = tweening::interpolate(tweening::easeOutElastic, 1.6f, 1.0f, _piece_timers[3], 0.7f);
 		_piece_timers[3] += ds::getElapsedSeconds();
 	}
-	ds::vec2 ts = font::textSize(buffer, 1.0f);
+	ds::vec2 ts = dialog::text_size(buffer, 1.0f);
 	p.x = (1024.0f - ts.x) * 0.5f;
-	font::renderText(p, buffer, _buffer, scale);
+	dialog::Text(p, buffer, false, ds::vec2(scale));
+
+	dialog::end();
 }

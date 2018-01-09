@@ -1,194 +1,10 @@
 #include "Dialog.h"
-#include <vector>
 #include "Constants.h"
-#include <stdarg.h>
+#include <ds_game_ui.h>
 #include "utils\utils.h"
 #include "utils\tweening.h"
 #include "GameSettings.h"
 #include "utils\HUD.h"
-
-namespace dialog {
-
-	struct DrawCall {
-		ds::vec2 pos;
-		ds::vec4 rect;
-	};
-
-	const int MAX_DRAW_CALLS = 1024;
-
-	struct GUIContext {
-		SpriteBatchBuffer* buffer;
-		DrawCall calls[MAX_DRAW_CALLS];
-		int num_calls;
-		bool clicked;
-		bool buttonPressed;
-	};
-
-	static GUIContext _guiCtx;
-
-	// -------------------------------------------------------
-	// check if mouse cursor is inside box
-	// -------------------------------------------------------
-	static bool isCursorInside(const ds::vec2& p, const ds::vec2& dim) {
-		ds::vec2 mp = ds::getMousePosition();
-		if (mp.x < (p.x - dim.x * 0.5f)) {
-			return false;
-		}
-		if (mp.x >(p.x + dim.x * 0.5f)) {
-			return false;
-		}
-		if (mp.y < (p.y - dim.y * 0.5f)) {
-			return false;
-		}
-		if (mp.y >(p.y + dim.y * 0.5f)) {
-			return false;
-		}
-		return true;
-	}
-
-	// -------------------------------------------------------
-	// handle mouse interaction
-	// -------------------------------------------------------
-	static bool isClicked(const ds::vec2& pos, const ds::vec2& size) {
-		if (_guiCtx.clicked) {
-			ds::vec2 p = pos;
-			if (_guiCtx.clicked && isCursorInside(p, size)) {
-				return true;
-			}
-		}
-		return false;
-	}
-
-	// ---------------------------------------------------------------
-	// init
-	// ---------------------------------------------------------------
-	void init(SpriteBatchBuffer* buffer) {
-		_guiCtx.buffer = buffer;
-		_guiCtx.clicked = false;
-		_guiCtx.buttonPressed = false;
-		_guiCtx.num_calls = 0;
-	}
-
-	// ---------------------------------------------------------------
-	// begin
-	// ---------------------------------------------------------------
-	void begin() {
-		_guiCtx.num_calls = 0;
-		if (_guiCtx.clicked) {
-			_guiCtx.clicked = false;
-		}
-		if (ds::isMouseButtonPressed(0)) {
-			_guiCtx.buttonPressed = true;
-		}
-		else {
-			if (_guiCtx.buttonPressed) {
-				_guiCtx.clicked = true;
-			}
-			_guiCtx.buttonPressed = false;
-		}
-	}
-
-	// ---------------------------------------------------------------
-	// button
-	// ---------------------------------------------------------------
-	bool Button(const ds::vec2& pos, const ds::vec4& rect) {
-		if (_guiCtx.num_calls < MAX_DRAW_CALLS) {
-			DrawCall& call = _guiCtx.calls[_guiCtx.num_calls++];
-			call.pos = pos;
-			call.rect = rect;
-			ds::vec2 dim = ds::vec2(rect.z, rect.w);
-			return isClicked(pos, dim);
-		}
-		return false;
-	}
-
-	// ---------------------------------------------------------------
-	// image
-	// ---------------------------------------------------------------
-	void Image(const ds::vec2& pos, const ds::vec4& rect) {
-		if (_guiCtx.num_calls < MAX_DRAW_CALLS) {
-			DrawCall& call = _guiCtx.calls[_guiCtx.num_calls++];
-			call.pos = pos;
-			call.rect = rect;
-		}
-	}
-
-	// ---------------------------------------------------------------
-	// text
-	// ---------------------------------------------------------------
-	void Text(const ds::vec2& pos, const char* text, bool centered) {
-		int l = strlen(text);
-		ds::vec2 p = pos;
-		ds::vec2 size = font::textSize(text);
-		if (centered) {
-			p.x = (ds::getScreenWidth() - size.x) * 0.5f;
-		}
-		float lw = 0.0f;
-		for (int i = 0; i < l; ++i) {
-			ds::vec4 r = font::get_rect(text[i]);
-			p.x += lw * 0.5f + r.z * 0.5f;
-			if (_guiCtx.num_calls < MAX_DRAW_CALLS) {
-				DrawCall& call = _guiCtx.calls[_guiCtx.num_calls++];
-				call.pos = p;
-				call.rect = r;
-			}
-			lw = r.z;
-		}
-	}
-
-	// ---------------------------------------------------------------
-	// formatted text
-	// ---------------------------------------------------------------
-	void FormattedText(const ds::vec2& pos, bool centered, const char* fmt, ...) {
-		char buffer[1024];
-		va_list args;
-		va_start(args, fmt);
-		vsprintf(buffer, fmt, args);
-		ds::vec2 size = font::textSize(buffer);
-		ds::vec2 p = pos;
-		if (centered) {
-			p.x = (ds::getScreenWidth() - size.x) * 0.5f;
-		}
-		Text(p, buffer, centered);
-		va_end(args);		
-	}
-
-	// ---------------------------------------------------------------
-	// input
-	// ---------------------------------------------------------------
-	void Input(const ds::vec2& pos, char* text, int maxLength) {
-		size_t len = strlen(text);
-		for (int i = 0; i < ds::getNumInputKeys(); ++i) {
-			const ds::InputKey& key = ds::getInputKey(i);
-			if (key.type == ds::IKT_SYSTEM) {
-				if (key.value == ds::SpecialKeys::DSKEY_Backspace) {
-					--len;
-					text[len] = '\0';
-				}
-			}
-			else {
-				if ((key.value >= 32 && key.value < 128)) {
-					if (len < maxLength) {
-						text[len] = key.value;
-						++len;
-					}
-				}
-			}
-			text[len] = '\0';
-		}
-		Text(pos, text, true);
-	}
-
-	// ---------------------------------------------------------------
-	// end
-	// ---------------------------------------------------------------
-	void end() {
-		for (size_t i = 0; i < _guiCtx.num_calls; ++i) {
-			const DrawCall& call = _guiCtx.calls[i];
-			_guiCtx.buffer->add(call.pos, call.rect);
-		}
-	}
-}
 
 enum FloatInDirection {
 	FID_LEFT,
@@ -284,10 +100,10 @@ int showGameOverMenu(GameContext* ctx, float time, float ttl) {
 		dialog::Text(ds::vec2(x, y - i * 60), GAME_OVER_LABELS[i], false);
 	}
 
-	dialog::FormattedText(ds::vec2(x + 540, y), false, "%d", ctx->score.itemsCleared);
-	dialog::FormattedText(ds::vec2(x + 480, y - 60), false, "%02d %02d", ctx->score.minutes, ctx->score.seconds);
-	dialog::FormattedText(ds::vec2(x + 540, y - 120), false, "%d", ctx->score.highestCombo);
-	dialog::FormattedText(ds::vec2(x + 460, y - 180), false, "%06d", ctx->score.points);
+	dialog::FormattedText(ds::vec2(x + 540, y), false, ds::vec2(1.0f), "%d", ctx->score.itemsCleared);
+	dialog::FormattedText(ds::vec2(x + 480, y - 60), false, ds::vec2(1.0f), "%02d %02d", ctx->score.minutes, ctx->score.seconds);
+	dialog::FormattedText(ds::vec2(x + 540, y - 120), false, ds::vec2(1.0f), "%d", ctx->score.highestCombo);
+	dialog::FormattedText(ds::vec2(x + 460, y - 180), false, ds::vec2(1.0f), "%06d", ctx->score.points);
 	
 	int dx = floatButton(time, ttl, FloatInDirection::FID_LEFT);
 	if (dialog::Button(ds::vec2(dx, 260), ds::vec4(730, 290, 260, 60))) {
@@ -321,7 +137,7 @@ int showNewHighscoreMenu(GameContext* ctx, float time, float ttl) {
 		if (r > 10) {
 			r -= 10;
 		}
-		dialog::FormattedText(ds::vec2(512, 500), true, "New highscore at rank %d", r);
+		dialog::FormattedText(ds::vec2(512, 500), true, ds::vec2(1.0f), "New highscore at rank %d", r);
 	}
 
 	dialog::Text(ds::vec2(512, 400),"Please enter your name");
@@ -330,6 +146,7 @@ int showNewHighscoreMenu(GameContext* ctx, float time, float ttl) {
 
 	int dx = floatButton(time, ttl, FloatInDirection::FID_LEFT);
 	if (dialog::Button(ds::vec2(dx, 260), ds::vec4(470, 350, 260, 60))) {
+		insertHighscore(ctx, ctx->ranking);
 		ret = 1;
 	}	
 	dialog::end();
@@ -382,16 +199,16 @@ int showGameModeMenu(float time, float ttl) {
 		ret = 1;
 	}
 	if (dialog::isCursorInside(ds::vec2(dx, 520), ds::vec2(260, 60))) {
-		dialog::FormattedText(ds::vec2(512, 460), true, "Try to clean up the board");
-		dialog::FormattedText(ds::vec2(512, 430), true, "without timelimit");
+		dialog::FormattedText(ds::vec2(512, 460), true, ds::vec2(1.0f), "Try to clean up the board");
+		dialog::FormattedText(ds::vec2(512, 430), true, ds::vec2(1.0f), "without timelimit");
 	}
 	dx = floatButton(time, ttl, FloatInDirection::FID_RIGHT);
 	if (dialog::Button(ds::vec2(dx, 350), ds::vec4(210, 350, 260, 60))) {
 		ret = 2;
 	}
 	if (dialog::isCursorInside(ds::vec2(dx, 350), ds::vec2(260, 60))) {
-		dialog::FormattedText(ds::vec2(512, 290), true, "Try to clean up as much as you");
-		dialog::FormattedText(ds::vec2(512, 260), true, "can within 2 minutes");
+		dialog::FormattedText(ds::vec2(512, 290), true, ds::vec2(1.0f), "Try to clean up as much as you");
+		dialog::FormattedText(ds::vec2(512, 260), true, ds::vec2(1.0f), "can within 2 minutes");
 	}
 	dx = floatButton(time, ttl, FloatInDirection::FID_LEFT);
 	if (dialog::Button(ds::vec2(dx, 180), ds::vec4(470, 290, 260, 60))) {

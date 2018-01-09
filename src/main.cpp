@@ -4,6 +4,8 @@
 #include <stb_image.h>
 #define SPRITE_IMPLEMENTATION
 #include <SpriteBatchBuffer.h>
+#define DS_GAME_UI_IMPLEMENTATION
+#include <ds_game_ui.h>
 #include "Board.h"
 #include "GameSettings.h"
 #include "utils\utils.h"
@@ -41,71 +43,27 @@ RID loadImage(const char* name) {
 }
 
 // ---------------------------------------------------------------
-// load highscores
+// prepare font info for game ui
 // ---------------------------------------------------------------
-void loadHighscores(GameContext* ctx) {
-	FILE* fp = fopen("scores", "rb");
-	if (fp) {
-		for (int i = 0; i < 20; ++i) {
-			fread(&ctx->highscoreContext.highscores[i].points, sizeof(int), 1, fp);
-			fread(&ctx->highscoreContext.highscores[i].name, sizeof(char) * 16, 1, fp);
-		}
-		fclose(fp);
+void prepareFontInfo(dialog::FontInfo* info) {
+	// default for every character just empty space
+	for (int i = 0; i < 255; ++i) {
+		info->texture_rects[i] = ds::vec4(40, 0, 20, 25);
 	}
-	else {
-		for (int i = 0; i < 20; ++i) {
-			ctx->highscoreContext.highscores[i].points = -1;
-			sprintf(ctx->highscoreContext.highscores[i].name, "Name %d", (i + 1));
-		}
+	// numbers
+	for (int c = 48; c <= 57; ++c) {
+		int idx = (int)c - 48;
+		info->texture_rects[c] = ds::vec4(201 + idx * 30, 260, 30, 25);
 	}
-}
-
-// ---------------------------------------------------------------
-// save highscores
-// ---------------------------------------------------------------
-void saveHighscores(GameContext* ctx) {
-	FILE* fp = fopen("scores", "wb");
-	if (fp) {
-		for (int i = 0; i < 20; ++i) {
-			fwrite(&ctx->highscoreContext.highscores[i].points, sizeof(int), 1, fp);
-			fwrite(&ctx->highscoreContext.highscores[i].name, sizeof(char) * 16, 1, fp);
-		}
-		fclose(fp);
+	// :
+	info->texture_rects[58] = ds::vec4(960, 230, 24, 25);
+	// characters
+	for (int c = 65; c <= 90; ++c) {
+		ds::vec2 fd = FONT_DEF[(int)c - 65];
+		info->texture_rects[c] = ds::vec4(200.0f + fd.x, 230.0f, fd.y, 25.0f);
 	}
 }
 
-// ---------------------------------------------------------------
-// get highscore ranking
-// ---------------------------------------------------------------
-int getHighscoreRanking(GameContext* ctx) {
-	int offset = 0;
-	if (ctx->game_play_mode == GamePlayMode::GPM_TIMER) {
-		offset += 10;
-	}
-	for (int i = 0; i < 10; ++i) {
-		int current = ctx->highscoreContext.highscores[offset + i].points;
-		if (current == -1 || current < ctx->score.points) {
-			return offset + i;
-		}
-	}
-	return -1;
-}
-
-// ---------------------------------------------------------------
-// insert highscore
-// ---------------------------------------------------------------
-void insertHighscore(GameContext* ctx, int rank) {
-	int start = rank;
-	int end = 9;
-	if (rank > 10) {
-		end = 19;
-	}
-	for (int i = end; i > start; --i) {
-		ctx->highscoreContext.highscores[i] = ctx->highscoreContext.highscores[i - 1];
-	}
-	ctx->highscoreContext.highscores[rank].points = ctx->score.points;
-	sprintf_s(ctx->highscoreContext.highscores[rank].name, "%s", ctx->user);
-}
 
 // ---------------------------------------------------------------
 // show main menu
@@ -415,7 +373,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 	gameContext.menuTimer = 0.0f;
 	gameContext.user[0] = '\0';
 
-	dialog::init(&spriteBuffer);
+	dialog::FontInfo fontInfo;
+	prepareFontInfo(&fontInfo);
+	dialog::init(&spriteBuffer, fontInfo);
 
 	bool showDialog = true;
 	bool guiKeyPressed = false;
@@ -431,6 +391,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
 		insertHighscore(&gameContext, nr);
 	}
 	*/
+
 	while (ds::isRunning() && gameContext.running) {
 
 		perf::reset();

@@ -1,6 +1,6 @@
 #pragma once
 #include <diesel.h>
-
+#include "utils\highscore.h"
 // ---------------------------------------------------------------
 // Game play modes
 // ---------------------------------------------------------------
@@ -52,21 +52,6 @@ struct Score {
 	int highestCombo;
 	int piecesLeft;
 };
-
-struct Highscore {
-	int points;
-	char name[16];
-};
-
-struct HighscoreContext {
-	int mode;
-	int offset;
-	float offsetTimer;
-	// 0 - 10 zen / 11 - 20 timer
-	Highscore highscores[20];
-};
-
-
 
 class Board;
 class HUD;
